@@ -41,11 +41,11 @@ function render(){
   $("cashTotal").textContent=money(t.cash);$("pledgeTotal").textContent=money(t.pledge);$("pledgeHolding").textContent=money(t.pledge);
   const betaReady=t.portfolioBeta!==null&&t.betaCoverage>0;
   $("portfolioBeta").textContent=betaReady?fmt(t.portfolioBeta,2):"--";
-  $("betaCoverage").textContent=betaReady?`Beta 資料涵蓋 ${fmt(t.betaCoverage,0)}% 總資產`:"尚未設定持股 Beta";
+  $("betaCoverage").textContent=betaReady?`自動 Beta 涵蓋 ${fmt(t.betaCoverage,0)}% 總資產`:"尚未完成 Beta 計算";
   $("betaDetail").textContent=betaReady?fmt(t.portfolioBeta,2):"--";
   const meter=Math.max(0,Math.min(100,(betaReady?t.portfolioBeta:0)/2*100));
   $("betaMeterFill").style.width=`${meter}%`;
-  $("betaDescription").textContent=!betaReady?"請在持股的「修改」中輸入各股票 Beta。":t.portfolioBeta<0.7?"整體波動預估低於大盤。":t.portfolioBeta<1.15?"整體波動接近大盤。":t.portfolioBeta<1.5?"整體波動高於大盤，屬中高風險。":"整體波動明顯高於大盤，需留意槓桿與集中風險。";
+  $("betaDescription").textContent=!betaReady?"按「更新全部」即可自動估算持股 Beta。":t.portfolioBeta<0?"與市場走勢傾向相反。":t.portfolioBeta<0.7?"市場敏感度明顯低於大盤。":t.portfolioBeta<1.15?"市場敏感度接近大盤。":t.portfolioBeta<1.5?"市場敏感度高於大盤。":"市場敏感度明顯高於大盤，需留意槓桿與集中風險。";
   $("pledgeRemaining").textContent=money(Math.max(0,t.pledge-n(state.pledgeDebt)));
   const pledgedValue=state.holdings.filter(h=>n(h.pledgeRatio)>0).reduce((s,h)=>s+valueTwd(h),0);
   $("maintenanceRatio").textContent=n(state.pledgeDebt)>0?`${fmt(pledgedValue/n(state.pledgeDebt)*100,1)}%`:"--";
@@ -62,7 +62,7 @@ function renderHoldings(){
   $("holdingsList").innerHTML=state.holdings.map((h,i)=>{
     const c=h.market==="TW"?"TWD":"USD",change=n(h.previousClose)>0?(n(h.price)-n(h.previousClose))/n(h.previousClose)*100:null;
     return `<div class="holding"><div class="holding-top"><div><span class="holding-symbol">${h.symbol}</span><span class="pill">${h.market==="TW"?"台股":"美股"}</span></div><div class="holding-value">${money(n(h.price)*n(h.shares),c)}</div></div>
-    <div class="holding-meta">${h.name||""}<br>股數 ${fmt(h.shares,4)}｜價格 ${money(h.price,c)}${change===null?"":`｜<span class="${change>=0?"positive":"negative"}">${change>=0?"+":""}${fmt(change,2)}%</span>`}${n(h.pledgeRatio)>0?`｜質押 ${fmt(h.pledgeRatio,0)}%`:""}${h.beta!==undefined&&h.beta!==null&&h.beta!==""?`｜Beta ${fmt(h.beta,2)}`:""}<br>${h.updatedAt?`更新 ${h.updatedAt}`:"尚未取得報價"}${h.error?`<br><span class="holding-error">${h.error}</span>`:""}</div>
+    <div class="holding-meta">${h.name||""}<br>股數 ${fmt(h.shares,4)}｜價格 ${money(h.price,c)}${change===null?"":`｜<span class="${change>=0?"positive":"negative"}">${change>=0?"+":""}${fmt(change,2)}%</span>`}${n(h.pledgeRatio)>0?`｜質押 ${fmt(h.pledgeRatio,0)}%`:""}${h.beta!==undefined&&h.beta!==null&&h.beta!==""?`｜Beta ${fmt(h.beta,2)}${h.betaBenchmark?`（${h.betaBenchmark}）`:""}`:"｜Beta 尚未計算"}<br>${h.updatedAt?`更新 ${h.updatedAt}`:"尚未取得報價"}${h.error?`<br><span class="holding-error">${h.error}</span>`:""}</div>
     <div class="holding-actions"><button onclick="refreshHolding(${i})">更新</button><button onclick="editHolding(${i})">修改</button><button class="remove" onclick="removeHolding(${i})">刪除</button></div></div>`;
   }).join("");
 }
@@ -77,6 +77,19 @@ async function fetchUs(symbol){
   const r=await fetch(`https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(symbol)}&token=${encodeURIComponent(state.finnhubKey)}`,{cache:"no-store"});
   const d=await r.json();if(!r.ok||!n(d.c))throw new Error("查無美股報價");
   return {price:n(d.c),previousClose:n(d.pc),name:symbol};
+}
+
+async function fetchBeta(symbol,market){
+  const base=state.workerUrl.replace(/\/+$/,"");
+  const r=await fetch(`${base}/beta?market=${encodeURIComponent(market)}&symbol=${encodeURIComponent(symbol)}`,{cache:"no-store"});
+  const d=await r.json();
+  if(!r.ok||!d.ok||!Number.isFinite(Number(d.beta)))throw new Error(d.error||"Beta 計算失敗");
+  return {
+    beta:n(d.beta),
+    betaBenchmark:d.benchmark||"",
+    betaObservations:n(d.observations),
+    betaUpdatedAt:d.fetchedAt||now()
+  };
 }
 
 const looksLikeTw=symbol=>/^\d{4,6}$/.test(symbol);
@@ -103,9 +116,23 @@ async function detectStock(symbol){
   }
   throw new Error("沒有此股票，請重新輸入");
 }
-window.refreshHolding=async i=>{const h=state.holdings[i];h.error="更新中";renderHoldings();try{const q=h.market==="TW"?await fetchTw(h.symbol):await fetchUs(h.symbol);Object.assign(h,q,{updatedAt:now(),error:""})}catch(e){h.error=e.message}save();render()};
+window.refreshHolding=async i=>{
+  const h=state.holdings[i];
+  h.error="更新報價與 Beta 中";
+  renderHoldings();
+  const errors=[];
+  try{
+    const q=h.market==="TW"?await fetchTw(h.symbol):await fetchUs(h.symbol);
+    Object.assign(h,q,{updatedAt:now()});
+  }catch(e){errors.push(`報價：${e.message}`)}
+  try{
+    Object.assign(h,await fetchBeta(h.symbol,h.market));
+  }catch(e){errors.push(`Beta：${e.message}`)}
+  h.error=errors.join("｜");
+  save();render();
+};
 window.removeHolding=i=>{state.holdings.splice(i,1);save();render()};
-window.editHolding=i=>{const h=state.holdings[i],s=prompt(`${h.symbol} 股數`,h.shares);if(s===null)return;const p=prompt(`${h.symbol} 手動價格`,h.price||"");if(p===null)return;const g=prompt(`${h.symbol} 質押成數 %`,h.pledgeRatio||0);if(g===null)return;const b=prompt(`${h.symbol} Beta（不知道可留空）`,h.beta??"");if(b===null)return;h.shares=n(s);if(p!==""){h.price=n(p);h.updatedAt=`手動 ${now()}`}h.pledgeRatio=Math.max(0,Math.min(100,n(g)));h.beta=b.trim()===""?null:Math.max(0,n(b));save();render()};
+window.editHolding=i=>{const h=state.holdings[i],s=prompt(`${h.symbol} 股數`,h.shares);if(s===null)return;const p=prompt(`${h.symbol} 手動價格`,h.price||"");if(p===null)return;const g=prompt(`${h.symbol} 質押成數 %`,h.pledgeRatio||0);if(g===null)return;h.shares=n(s);if(p!==""){h.price=n(p);h.updatedAt=`手動 ${now()}`}h.pledgeRatio=Math.max(0,Math.min(100,n(g)));save();render()};
 
 
 function renderMarketPie(){
@@ -154,7 +181,6 @@ function renderHistory(){
 $("addHolding").onclick=async()=>{
   const symbol=$("symbol").value.trim().toUpperCase().replace(/\s+/g,"");
   const shares=n($("shares").value),manualPrice=n($("manualPrice").value),pledge=n($("pledgeRatio").value);
-  const betaRaw=$("stockBeta").value.trim(),beta=betaRaw===""?null:Math.max(0,n(betaRaw));
   if(!symbol||shares<=0)return toast("請輸入股票代號與持有股數");
   if(state.holdings.some(h=>h.symbol===symbol))return toast("這個股票代號已經加入");
 
@@ -175,18 +201,25 @@ $("addHolding").onclick=async()=>{
       price,
       previousClose:detected.previousClose,
       pledgeRatio:Math.max(0,Math.min(100,pledge)),
-      beta,
+      beta:null,
+      betaBenchmark:"",
+      betaObservations:0,
       name:detected.name||symbol,
       updatedAt:manualPrice>0?`手動 ${now()}`:now(),
       error:""
     });
+    const newIndex=state.holdings.length-1;
+    try{
+      Object.assign(state.holdings[newIndex],await fetchBeta(symbol,detected.market));
+    }catch(e){
+      state.holdings[newIndex].error=`Beta：${e.message}`;
+    }
     save();
     render();
     $("symbol").value="";
     $("shares").value="";
     $("manualPrice").value="";
     $("pledgeRatio").value="";
-    $("stockBeta").value="";
     $("symbolStatus").textContent=`已辨識為${detected.market==="TW"?"台股":"美股"}：${detected.name||symbol}`;
     $("symbolStatus").className="field-status success";
     toast(`已加入${detected.market==="TW"?"台股":"美股"} ${symbol}`);
@@ -248,4 +281,4 @@ $("menuOverlay").onclick=closeMenu;
 document.querySelectorAll(".side-menu-nav button").forEach(b=>b.onclick=()=>switchPage(b.dataset.tab));
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeMenu()});
 
-render();if("serviceWorker"in navigator)navigator.serviceWorker.register("./sw.js?v=3.3.0").catch(()=>{});
+render();if("serviceWorker"in navigator)navigator.serviceWorker.register("./sw.js?v=3.4.0").catch(()=>{});

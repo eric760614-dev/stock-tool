@@ -105,3 +105,9 @@ body.menu-open{overflow:hidden}
   .hero .primary.compact{padding-left:16px;padding-right:16px}
   .menu-button{width:46px;height:46px;border-radius:15px}
 }
+
+.auto-beta-hint{
+  margin:-2px 0 16px;padding:12px 14px;border:1px solid rgba(105,168,255,.22);
+  border-radius:14px;background:rgba(47,100,233,.08);color:#aebed5;
+  font-size:.79rem;line-height:1.55
+}
