@@ -1,40 +1,17 @@
-# Eric's Portfolio V4.1｜手機友善單層架構
+# AlphaPilot V5
 
-這一版沒有 `public` 或 `src` 資料夾，所有檔案都在同一個根目錄，適合使用 iPhone 的 GitHub「Upload files」。
-
-## 上傳到新 GitHub Repository
-
-請一次上傳：
+直接將這 4 個檔案上傳並覆蓋 GitHub `stock-tool` 根目錄：
 
 - worker.js
 - wrangler.jsonc
 - package.json
 - README.md
 
-其中 `worker.js` 已經包含：
-- 完整網頁
-- CSS
-- 前端 JavaScript
-- PWA Service Worker
-- Manifest 與圖示
-- 台股 API
-- 匯率 API
-- 自動 Beta API
+Commit 後 Cloudflare 會自動部署，不必再進 Cloudflare。
 
-因此不需要另外上傳 `index.html`、`app.js` 或資料夾。
-
-## Cloudflare Git 自動部署
-
-1. Cloudflare → Workers & Pages。
-2. 建立新的 Worker，選擇連接 Git／Import a repository。
-3. 選擇新的 V4 Repository。
-4. Production branch 選 `main`。
-5. Deploy command 使用 `npx wrangler deploy`。
-6. 儲存並部署。
-
-以後只要在 GitHub 更新這些根目錄檔案，Cloudflare 就會自動部署。
-
-## 注意
-
-本版已設定直接部署到既有 Worker：`stock-dashboard-api`，會沿用原本的 workers.dev 網址。
-部署前請確認 Cloudflare 專案連接的是 `eric760614-dev/stock-tool`。
+## V5 新增
+- 原創 AlphaPilot 指南針上升線 App Icon
+- 全新 iOS 毛玻璃介面與亮／暗模式
+- 配置助手：輸入新增資金與目標比例，計算建議買入
+- 質押壓力測試：模擬市場下跌後維持率與安全緩衝
+- 保留持股、即時更新、匯率、自動 Beta、資產配置、歷史紀錄及 PWA
