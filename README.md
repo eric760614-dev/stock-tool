@@ -1,4 +1,4 @@
-# AlphaPilot V6.4
+# AlphaPilot V7
 
 將以下 4 個檔案上傳並覆蓋 GitHub `stock-tool` 根目錄：
 
@@ -9,7 +9,7 @@
 
 Commit 後 Cloudflare Git 會自動部署。
 
-## V6.4 更新
+## V7 更新
 
 - 配置助手獨立成新的「聰明再平衡」分頁
 - 質押壓力測試與市場情境模擬合併到「風險模擬」分頁
@@ -28,3 +28,11 @@ Commit 後 Cloudflare Git 會自動部署。
 4. 按「加入持股」
 
 由於 Yahoo Finance 與 Finnhub 沒有 AU9901 的標準即時報價，更新按鈕會保留手動價格，不會把價格清除。
+
+
+## V7 修正
+- 保留 V6.4 全部功能與介面。
+- 修正備份載入時呼叫不存在的 `defaults()`，造成資料未還原的問題。
+- 匯出前驗證 JSON；匯入後重新讀取 LocalStorage 並核對持股與現金。
+- 相容舊版 AlphaPilot JSON 備份格式。
+- 不加入加密貨幣功能。
