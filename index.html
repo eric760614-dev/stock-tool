@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-title" content="資產儀表板">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg">
-  <link rel="stylesheet" href="style.css?v=3.1.0">
+  <link rel="stylesheet" href="style.css?v=3.2.0">
   <title>投資資產儀表板</title>
 </head>
 <body>
@@ -29,6 +29,7 @@
       <article class="summary-card"><span>美股市值</span><strong id="usTotal">US$0</strong><small id="fxText">USD/TWD --</small></article>
       <article class="summary-card"><span>現金</span><strong id="cashTotal">NT$0</strong><small>台幣＋美元換算</small></article>
       <article class="summary-card"><span>可質押額度</span><strong id="pledgeTotal">NT$0</strong><small id="pledgeText">依自訂成數</small></article>
+      <article class="summary-card beta-card"><span>投資組合 Beta</span><strong id="portfolioBeta">--</strong><small id="betaCoverage">尚未設定持股 Beta</small></article>
     </section>
 
     <nav class="tabs">
@@ -49,9 +50,10 @@
           </label>
           <label>持有股數<input id="shares" type="number" min="0" step="any" placeholder="1000"></label>
         </div>
-        <div class="form-grid two">
+        <div class="form-grid three">
           <label>手動價格（選填）<input id="manualPrice" type="number" min="0" step="any" placeholder="報價失敗時使用"></label>
           <label>質押成數（選填）<input id="pledgeRatio" type="number" min="0" max="100" step="1" placeholder="例如 60"></label>
+          <label>Beta（選填）<input id="stockBeta" type="number" min="0" step="0.01" placeholder="例如 1.20"></label>
         </div>
         <button id="addHolding" class="primary full">加入持股</button>
       </article>
@@ -63,10 +65,29 @@
     </section>
 
     <section id="allocation" class="tab-panel">
+      <article class="card cute-card">
+        <div class="section-head"><h2>市場配置</h2><span>台股／美股／現金</span></div>
+        <canvas id="marketChart" width="500" height="500"></canvas>
+        <div id="marketLegend" class="legend"></div>
+      </article>
+
       <article class="card">
-        <div class="section-head"><h2>資產配置</h2><span>依目前市值</span></div>
+        <div class="section-head"><h2>持股配置</h2><span>依個別股票市值</span></div>
         <canvas id="allocationChart" width="500" height="500"></canvas>
         <div id="allocationLegend" class="legend"></div>
+      </article>
+
+      <article class="card">
+        <div class="section-head"><h2>Beta 風險資訊</h2><span>市值加權</span></div>
+        <div class="beta-display">
+          <div>
+            <small>目前總 Beta</small>
+            <strong id="betaDetail">--</strong>
+          </div>
+          <div class="beta-meter"><span id="betaMeterFill"></span></div>
+          <p id="betaDescription">請在持股的「修改」中輸入各股票 Beta。</p>
+        </div>
+        <div class="beta-note">計算方式包含現金（Beta = 0）；未填 Beta 的持股不會被納入加權，並會顯示資料涵蓋率。</div>
       </article>
     </section>
 
@@ -112,6 +133,6 @@
 
     <div id="toast" class="toast"></div>
   </main>
-  <script src="app.js?v=3.1.0"></script>
+  <script src="app.js?v=3.2.0"></script>
 </body>
 </html>

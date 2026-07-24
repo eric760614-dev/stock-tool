@@ -17,3 +17,15 @@ canvas{width:100%;height:auto;display:block;max-height:380px}.legend{margin-top:
 .field-status.success{color:#57d38c}
 .field-status.error{color:#ff6b86}
 button:disabled{opacity:.65;cursor:wait}
+
+.beta-card{background:linear-gradient(145deg,rgba(47,100,233,.18),rgba(167,139,250,.14))}
+.cute-card{background:linear-gradient(160deg,rgba(24,47,84,.98),rgba(16,28,48,.98))}
+.cute-legend span{display:flex;align-items:center;gap:8px}
+.cute-legend i{display:inline-block;width:11px;height:11px;border-radius:50%;box-shadow:0 0 10px rgba(255,255,255,.2)}
+.beta-display{text-align:center;padding:8px 0 5px}
+.beta-display small{display:block;color:var(--muted);font-size:12px}
+.beta-display strong{display:block;font-size:46px;margin:8px 0}
+.beta-display p{color:#cbd5e1;font-size:13px;line-height:1.5;margin:13px 0 0}
+.beta-meter{height:12px;background:#071426;border:1px solid var(--line);border-radius:999px;overflow:hidden;margin:10px auto 0;max-width:420px}
+.beta-meter span{display:block;height:100%;width:0;background:linear-gradient(90deg,#5eead4,#69a8ff,#a78bfa,#fb7185);border-radius:999px;transition:width .35s ease}
+.beta-note{color:var(--muted);font-size:11px;line-height:1.55;border-top:1px solid var(--line);padding-top:12px;margin-top:12px}

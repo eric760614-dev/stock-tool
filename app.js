@@ -21,13 +21,31 @@ function totals(){
     pledge+=valueTwd(h)*n(h.pledgeRatio)/100;
   });
   const cash=n(state.cashTwd)+n(state.cashUsd)*n(state.fxRate);
-  return {tw,us,daily,base,pledge,cash,total:tw+us*n(state.fxRate)+cash};
+  const total=tw+us*n(state.fxRate)+cash;
+  let betaWeighted=0,betaValue=0;
+  state.holdings.forEach(h=>{
+    if(h.beta!==undefined&&h.beta!==null&&h.beta!==""&&n(h.beta)>=0){
+      const v=valueTwd(h);
+      betaWeighted+=v*n(h.beta);
+      betaValue+=v;
+    }
+  });
+  const portfolioBeta=total>0?betaWeighted/total:null;
+  const betaCoverage=total>0?betaValue/total*100:0;
+  return {tw,us,daily,base,pledge,cash,total,portfolioBeta,betaCoverage};
 }
 
 function render(){
   const t=totals();
   $("totalTwd").textContent=money(t.total);$("twTotal").textContent=money(t.tw);$("usTotal").textContent=money(t.us,"USD");
   $("cashTotal").textContent=money(t.cash);$("pledgeTotal").textContent=money(t.pledge);$("pledgeHolding").textContent=money(t.pledge);
+  const betaReady=t.portfolioBeta!==null&&t.betaCoverage>0;
+  $("portfolioBeta").textContent=betaReady?fmt(t.portfolioBeta,2):"--";
+  $("betaCoverage").textContent=betaReady?`Beta 資料涵蓋 ${fmt(t.betaCoverage,0)}% 總資產`:"尚未設定持股 Beta";
+  $("betaDetail").textContent=betaReady?fmt(t.portfolioBeta,2):"--";
+  const meter=Math.max(0,Math.min(100,(betaReady?t.portfolioBeta:0)/2*100));
+  $("betaMeterFill").style.width=`${meter}%`;
+  $("betaDescription").textContent=!betaReady?"請在持股的「修改」中輸入各股票 Beta。":t.portfolioBeta<0.7?"整體波動預估低於大盤。":t.portfolioBeta<1.15?"整體波動接近大盤。":t.portfolioBeta<1.5?"整體波動高於大盤，屬中高風險。":"整體波動明顯高於大盤，需留意槓桿與集中風險。";
   $("pledgeRemaining").textContent=money(Math.max(0,t.pledge-n(state.pledgeDebt)));
   const pledgedValue=state.holdings.filter(h=>n(h.pledgeRatio)>0).reduce((s,h)=>s+valueTwd(h),0);
   $("maintenanceRatio").textContent=n(state.pledgeDebt)>0?`${fmt(pledgedValue/n(state.pledgeDebt)*100,1)}%`:"--";
@@ -35,7 +53,7 @@ function render(){
   $("twCount").textContent=`${state.holdings.filter(h=>h.market==="TW").length} 檔`;$("fxText").textContent=`USD/TWD ${fmt(state.fxRate,4)}`;
   $("pledgeText").textContent=`借款 ${money(state.pledgeDebt)}`;
   $("lastUpdated").textContent=state.holdings.map(h=>h.updatedAt).filter(Boolean).sort().at(-1)||"尚未更新";
-  renderHoldings();renderPie();renderHistory();
+  renderHoldings();renderMarketPie();renderPie();renderHistory();
   $("cashTwd").value=state.cashTwd;$("cashUsd").value=state.cashUsd;$("pledgeDebt").value=state.pledgeDebt;
   $("workerUrl").value=state.workerUrl;$("finnhubKey").value=state.finnhubKey;$("fxRate").value=state.fxRate;
 }
@@ -44,7 +62,7 @@ function renderHoldings(){
   $("holdingsList").innerHTML=state.holdings.map((h,i)=>{
     const c=h.market==="TW"?"TWD":"USD",change=n(h.previousClose)>0?(n(h.price)-n(h.previousClose))/n(h.previousClose)*100:null;
     return `<div class="holding"><div class="holding-top"><div><span class="holding-symbol">${h.symbol}</span><span class="pill">${h.market==="TW"?"台股":"美股"}</span></div><div class="holding-value">${money(n(h.price)*n(h.shares),c)}</div></div>
-    <div class="holding-meta">${h.name||""}<br>股數 ${fmt(h.shares,4)}｜價格 ${money(h.price,c)}${change===null?"":`｜<span class="${change>=0?"positive":"negative"}">${change>=0?"+":""}${fmt(change,2)}%</span>`}${n(h.pledgeRatio)>0?`｜質押 ${fmt(h.pledgeRatio,0)}%`:""}<br>${h.updatedAt?`更新 ${h.updatedAt}`:"尚未取得報價"}${h.error?`<br><span class="holding-error">${h.error}</span>`:""}</div>
+    <div class="holding-meta">${h.name||""}<br>股數 ${fmt(h.shares,4)}｜價格 ${money(h.price,c)}${change===null?"":`｜<span class="${change>=0?"positive":"negative"}">${change>=0?"+":""}${fmt(change,2)}%</span>`}${n(h.pledgeRatio)>0?`｜質押 ${fmt(h.pledgeRatio,0)}%`:""}${h.beta!==undefined&&h.beta!==null&&h.beta!==""?`｜Beta ${fmt(h.beta,2)}`:""}<br>${h.updatedAt?`更新 ${h.updatedAt}`:"尚未取得報價"}${h.error?`<br><span class="holding-error">${h.error}</span>`:""}</div>
     <div class="holding-actions"><button onclick="refreshHolding(${i})">更新</button><button onclick="editHolding(${i})">修改</button><button class="remove" onclick="removeHolding(${i})">刪除</button></div></div>`;
   }).join("");
 }
@@ -87,7 +105,33 @@ async function detectStock(symbol){
 }
 window.refreshHolding=async i=>{const h=state.holdings[i];h.error="更新中";renderHoldings();try{const q=h.market==="TW"?await fetchTw(h.symbol):await fetchUs(h.symbol);Object.assign(h,q,{updatedAt:now(),error:""})}catch(e){h.error=e.message}save();render()};
 window.removeHolding=i=>{state.holdings.splice(i,1);save();render()};
-window.editHolding=i=>{const h=state.holdings[i],s=prompt(`${h.symbol} 股數`,h.shares);if(s===null)return;const p=prompt(`${h.symbol} 手動價格`,h.price||"");if(p===null)return;const g=prompt(`${h.symbol} 質押成數 %`,h.pledgeRatio||0);if(g===null)return;h.shares=n(s);if(p!==""){h.price=n(p);h.updatedAt=`手動 ${now()}`}h.pledgeRatio=Math.max(0,Math.min(100,n(g)));save();render()};
+window.editHolding=i=>{const h=state.holdings[i],s=prompt(`${h.symbol} 股數`,h.shares);if(s===null)return;const p=prompt(`${h.symbol} 手動價格`,h.price||"");if(p===null)return;const g=prompt(`${h.symbol} 質押成數 %`,h.pledgeRatio||0);if(g===null)return;const b=prompt(`${h.symbol} Beta（不知道可留空）`,h.beta??"");if(b===null)return;h.shares=n(s);if(p!==""){h.price=n(p);h.updatedAt=`手動 ${now()}`}h.pledgeRatio=Math.max(0,Math.min(100,n(g)));h.beta=b.trim()===""?null:Math.max(0,n(b));save();render()};
+
+
+function renderMarketPie(){
+  const canvas=$("marketChart"),ctx=canvas.getContext("2d"),w=canvas.width,h=canvas.height,t=totals();
+  const data=[
+    ["台股",t.tw,"#69a8ff","🐳"],
+    ["美股",t.us*n(state.fxRate),"#a78bfa","🦄"],
+    ["現金",t.cash,"#5eead4","🐣"]
+  ].filter(([,v])=>v>0);
+  const total=data.reduce((s,[,v])=>s+v,0);
+  ctx.clearRect(0,0,w,h);
+  if(!total){
+    ctx.fillStyle="#98a8c1";ctx.font="26px sans-serif";ctx.textAlign="center";
+    ctx.fillText("尚無資料",w/2,h/2);$("marketLegend").innerHTML="";return;
+  }
+  let a=-Math.PI/2,r=Math.min(w,h)*.36,cx=w/2,cy=h/2;
+  data.forEach(([,v,color])=>{
+    const b=a+v/total*Math.PI*2;
+    ctx.beginPath();ctx.arc(cx,cy,r,a,b);ctx.arc(cx,cy,r*.58,b,a,true);ctx.closePath();
+    ctx.fillStyle=color;ctx.fill();a=b;
+  });
+  ctx.beginPath();ctx.arc(cx,cy,r*.51,0,Math.PI*2);ctx.fillStyle="#101c30";ctx.fill();
+  ctx.fillStyle="#fff";ctx.textAlign="center";ctx.font="bold 30px sans-serif";ctx.fillText("資產配比",cx,cy-3);
+  ctx.font="20px sans-serif";ctx.fillStyle="#cbd5e1";ctx.fillText("100%",cx,cy+29);
+  $("marketLegend").innerHTML=data.map(([name,v,color,emoji])=>`<div class="legend-row cute-legend"><span><i style="background:${color}"></i>${emoji} ${name}</span><strong>${fmt(v/total*100,1)}%</strong></div>`).join("");
+}
 
 function renderPie(){
   const canvas=$("allocationChart"),ctx=canvas.getContext("2d"),w=canvas.width,h=canvas.height,map=new Map();
@@ -110,6 +154,7 @@ function renderHistory(){
 $("addHolding").onclick=async()=>{
   const symbol=$("symbol").value.trim().toUpperCase().replace(/\s+/g,"");
   const shares=n($("shares").value),manualPrice=n($("manualPrice").value),pledge=n($("pledgeRatio").value);
+  const betaRaw=$("stockBeta").value.trim(),beta=betaRaw===""?null:Math.max(0,n(betaRaw));
   if(!symbol||shares<=0)return toast("請輸入股票代號與持有股數");
   if(state.holdings.some(h=>h.symbol===symbol))return toast("這個股票代號已經加入");
 
@@ -130,6 +175,7 @@ $("addHolding").onclick=async()=>{
       price,
       previousClose:detected.previousClose,
       pledgeRatio:Math.max(0,Math.min(100,pledge)),
+      beta,
       name:detected.name||symbol,
       updatedAt:manualPrice>0?`手動 ${now()}`:now(),
       error:""
@@ -140,6 +186,7 @@ $("addHolding").onclick=async()=>{
     $("shares").value="";
     $("manualPrice").value="";
     $("pledgeRatio").value="";
+    $("stockBeta").value="";
     $("symbolStatus").textContent=`已辨識為${detected.market==="TW"?"台股":"美股"}：${detected.name||symbol}`;
     $("symbolStatus").className="field-status success";
     toast(`已加入${detected.market==="TW"?"台股":"美股"} ${symbol}`);
