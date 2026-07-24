@@ -72,11 +72,12 @@
       <p><b>美股即時報價：</b>需要免費 Finnhub API Key。Key 只會保存在你的手機，不會上傳到其他地方。</p>
       <label>Finnhub API Key</label>
       <input id="apiKey" type="password" placeholder="貼上 Finnhub API Key"/>
+      <div style="margin-top:10px"><label>台股查價 Worker 網址</label><input id="twseProxyUrl" type="url" placeholder="例如 https://stock-price-proxy.你的帳號.workers.dev"/></div>
       <div class="grid" style="margin-top:10px">
         <div><label>USD/TWD 匯率</label><input id="fxRate" type="number" min="0" step="0.0001"/></div>
         <div style="display:flex;align-items:end"><button id="saveSettings" class="secondary">儲存設定</button></div>
       </div>
-      <p>台股輸入純數字代號，例如 <code>2330</code>、<code>0050</code>、<code>00631L</code>。工具會依序嘗試上市與上櫃市場。</p>
+      <p>台股輸入純數字代號，例如 <code>2330</code>、<code>0050</code>、<code>00631L</code>。請先部署附檔中的 Cloudflare Worker，並把 Worker 網址貼到上方。</p>
       <p>美股輸入代號，例如 <code>AAPL</code>、<code>QQQM</code>、<code>VT</code>。免費資料可能有交易所延遲；畫面會顯示最後更新時間。</p>
       <p>要像 App 一樣使用：用 Safari 開啟部署網址 → 分享 →「加入主畫面」。</p>
     </div>
@@ -87,7 +88,7 @@
 <script>
 const $ = id => document.getElementById(id);
 const storeKey = 'stockAssetToolV1';
-let state = JSON.parse(localStorage.getItem(storeKey) || '{"holdings":[],"fxRate":32.5,"apiKey":""}');
+let state = JSON.parse(localStorage.getItem(storeKey) || '{"holdings":[],"fxRate":32.5,"apiKey":"","twseProxyUrl":""}');
 if (!Array.isArray(state.holdings)) state.holdings = [];
 
 function save(){ localStorage.setItem(storeKey, JSON.stringify(state)); }
@@ -120,22 +121,16 @@ function render(){
 }
 async function fetchTwse(symbol){
   const clean=symbol.toUpperCase().replace(/\.TW$|\.TWO$/g,'');
-  const channels=[`tse_${clean}.tw`,`otc_${clean}.tw`];
-  for(const ch of channels){
-    const url=`https://mis.twse.com.tw/stock/api/getStockInfo.jsp?ex_ch=${encodeURIComponent(ch)}&json=1&delay=0&_=${Date.now()}`;
-    try{
-      const r=await fetch(url,{cache:'no-store'});
-      if(!r.ok) continue;
-      const j=await r.json();
-      const x=j.msgArray && j.msgArray[0];
-      if(x){
-        const candidates=[x.z,x.pz,x.y];
-        const p=candidates.map(Number).find(n=>Number.isFinite(n)&&n>0);
-        if(p) return p;
-      }
-    }catch(e){}
-  }
-  throw new Error('查無台股報價，可填手動價格');
+  const proxy=(state.twseProxyUrl||'').trim().replace(/\/$/,'');
+  if(!proxy) throw new Error('請先在設定貼上台股查價 Worker 網址');
+  const url=`${proxy}/?symbol=${encodeURIComponent(clean)}`;
+  const r=await fetch(url,{cache:'no-store'});
+  let j={};
+  try{ j=await r.json(); }catch(e){}
+  if(!r.ok) throw new Error(j.error||'台股查價服務連線失敗');
+  const p=Number(j.price);
+  if(!Number.isFinite(p)||p<=0) throw new Error(j.error||'查無台股報價');
+  return p;
 }
 async function fetchUs(symbol){
   if(!state.apiKey) throw new Error('請先設定 Finnhub API Key');
@@ -195,11 +190,12 @@ $('refreshFx').onclick=async()=>{
 }
 $('saveSettings').onclick=()=>{
   state.apiKey=$('apiKey').value.trim();
+  state.twseProxyUrl=$('twseProxyUrl').value.trim();
   const fx=Number($('fxRate').value);if(fx>0)state.fxRate=fx;
   save();calc();$('globalStatus').innerHTML='<span class="good">設定已儲存</span>';
 }
 $('clearAll').onclick=()=>{if(confirm('確定刪除全部持股？')){state.holdings=[];save();render();}}
-$('apiKey').value=state.apiKey||'';$('fxRate').value=state.fxRate||32.5;
+$('apiKey').value=state.apiKey||'';$('twseProxyUrl').value=state.twseProxyUrl||'';$('fxRate').value=state.fxRate||32.5;
 render();
 if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});
 </script>
