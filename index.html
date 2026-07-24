@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#0b1220" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="股票資產" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <title>股票總資產計算器</title>
+  <style>
+    :root{--bg:#07101d;--card:#101b2d;--muted:#94a3b8;--text:#f8fafc;--line:#24324a;--accent:#60a5fa;--good:#34d399;--bad:#fb7185}
+    *{box-sizing:border-box} body{margin:0;background:linear-gradient(180deg,#07101d,#0b1324);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;min-height:100vh}
+    .wrap{max-width:760px;margin:auto;padding:calc(env(safe-area-inset-top) + 18px) 14px calc(env(safe-area-inset-bottom) + 30px)}
+    h1{font-size:24px;margin:0 0 4px}.sub{color:var(--muted);font-size:13px;margin-bottom:16px}
+    .card{background:rgba(16,27,45,.94);border:1px solid var(--line);border-radius:18px;padding:15px;margin-bottom:12px;box-shadow:0 12px 30px rgba(0,0,0,.18)}
+    .summary{display:grid;grid-template-columns:1fr 1fr;gap:10px}.metric{background:#0a1424;border-radius:14px;padding:13px}.metric small{display:block;color:var(--muted);margin-bottom:6px}.metric strong{font-size:21px}
+    label{font-size:12px;color:var(--muted);display:block;margin-bottom:5px}
+    input,select,button{width:100%;border-radius:12px;border:1px solid var(--line);background:#091424;color:var(--text);padding:12px;font-size:16px}
+    button{background:#1d4ed8;border:0;font-weight:700;cursor:pointer}.secondary{background:#162238}.danger{background:#3a1520;color:#fecdd3}.ghost{background:transparent;border:1px solid var(--line)}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.grid3{display:grid;grid-template-columns:1.1fr .8fr .8fr;gap:8px}
+    .row{border-top:1px solid var(--line);padding:13px 0 2px}.row:first-child{border-top:0}
+    .topline{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.ticker{font-size:18px;font-weight:800}.tag{font-size:11px;padding:4px 8px;border-radius:99px;background:#1e293b;color:#cbd5e1}
+    .value{font-weight:800;text-align:right}.meta{font-size:12px;color:var(--muted);margin-top:5px;line-height:1.5}.actions{display:flex;gap:8px;margin-top:10px}.actions button{padding:9px;font-size:14px}
+    .status{font-size:12px;color:var(--muted);margin-top:8px;min-height:18px}.good{color:var(--good)}.bad{color:var(--bad)}
+    details summary{cursor:pointer;font-weight:700}.help{font-size:13px;color:#cbd5e1;line-height:1.65}.help code{background:#07101d;padding:2px 5px;border-radius:5px}
+    .footer{text-align:center;color:var(--muted);font-size:11px;margin-top:18px}
+    @media(max-width:560px){.summary,.grid,.grid3{grid-template-columns:1fr}.metric strong{font-size:19px}}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h1>股票總資產計算器</h1>
+  <div class="sub">台股＋美股｜資料只儲存在你的手機瀏覽器</div>
+
+  <section class="card">
+    <div class="summary">
+      <div class="metric"><small>總資產（新台幣）</small><strong id="totalTwd">NT$0</strong></div>
+      <div class="metric"><small>美股部位（美元）</small><strong id="totalUsd">US$0</strong></div>
+      <div class="metric"><small>台股部位</small><strong id="twValue">NT$0</strong></div>
+      <div class="metric"><small>美元匯率</small><strong id="fxDisplay">0.0000</strong></div>
+    </div>
+    <div class="actions">
+      <button id="refreshAll">更新全部價格</button>
+      <button class="secondary" id="refreshFx">更新匯率</button>
+    </div>
+    <div id="globalStatus" class="status"></div>
+  </section>
+
+  <section class="card">
+    <h2 style="font-size:18px;margin-top:0">新增持股</h2>
+    <div class="grid3">
+      <div><label>市場</label><select id="market"><option value="TW">台股</option><option value="US">美股</option></select></div>
+      <div><label>股票代號</label><input id="symbol" placeholder="例如 0050、AAPL" autocapitalize="characters"/></div>
+      <div><label>持有股數</label><input id="shares" type="number" min="0" step="any" placeholder="1000"/></div>
+    </div>
+    <div class="grid" style="margin-top:10px">
+      <div><label>手動價格（選填）</label><input id="manualPrice" type="number" min="0" step="any" placeholder="報價失敗時可填"/></div>
+      <div style="display:flex;align-items:end"><button id="addHolding">加入持股</button></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="topline"><h2 style="font-size:18px;margin:0">我的持股</h2><button class="ghost" id="clearAll" style="width:auto;padding:8px 12px">全部清除</button></div>
+    <div id="holdings"></div>
+  </section>
+
+  <details class="card">
+    <summary>設定與使用說明</summary>
+    <div class="help">
+      <p><b>美股即時報價：</b>需要免費 Finnhub API Key。Key 只會保存在你的手機，不會上傳到其他地方。</p>
+      <label>Finnhub API Key</label>
+      <input id="apiKey" type="password" placeholder="貼上 Finnhub API Key"/>
+      <div class="grid" style="margin-top:10px">
+        <div><label>USD/TWD 匯率</label><input id="fxRate" type="number" min="0" step="0.0001"/></div>
+        <div style="display:flex;align-items:end"><button id="saveSettings" class="secondary">儲存設定</button></div>
+      </div>
+      <p>台股輸入純數字代號，例如 <code>2330</code>、<code>0050</code>、<code>00631L</code>。工具會依序嘗試上市與上櫃市場。</p>
+      <p>美股輸入代號，例如 <code>AAPL</code>、<code>QQQM</code>、<code>VT</code>。免費資料可能有交易所延遲；畫面會顯示最後更新時間。</p>
+      <p>要像 App 一樣使用：用 Safari 開啟部署網址 → 分享 →「加入主畫面」。</p>
+    </div>
+  </details>
+  <div class="footer">本工具僅做資產彙總，不構成投資建議。即時性取決於資料供應商。</div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const storeKey = 'stockAssetToolV1';
+let state = JSON.parse(localStorage.getItem(storeKey) || '{"holdings":[],"fxRate":32.5,"apiKey":""}');
+if (!Array.isArray(state.holdings)) state.holdings = [];
+
+function save(){ localStorage.setItem(storeKey, JSON.stringify(state)); }
+function money(v,c='TWD'){
+  return new Intl.NumberFormat('zh-TW',{style:'currency',currency:c,maximumFractionDigits:c==='TWD'?0:2}).format(Number(v)||0);
+}
+function esc(s){ return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+function calc(){
+  let tw=0, us=0;
+  state.holdings.forEach(h=>{ const v=(Number(h.price)||0)*(Number(h.shares)||0); h.market==='TW'?tw+=v:us+=v; });
+  $('twValue').textContent=money(tw,'TWD');
+  $('totalUsd').textContent=money(us,'USD');
+  $('totalTwd').textContent=money(tw+us*Number(state.fxRate||0),'TWD');
+  $('fxDisplay').textContent=Number(state.fxRate||0).toFixed(4);
+}
+function render(){
+  const box=$('holdings');
+  if(!state.holdings.length){ box.innerHTML='<div class="status">尚未加入持股。</div>'; calc(); return; }
+  box.innerHTML=state.holdings.map((h,i)=>{
+    const currency=h.market==='TW'?'TWD':'USD';
+    const val=(Number(h.price)||0)*(Number(h.shares)||0);
+    return `<div class="row">
+      <div class="topline"><div><span class="ticker">${esc(h.symbol)}</span> <span class="tag">${h.market==='TW'?'台股':'美股'}</span></div>
+      <div class="value">${money(val,currency)}</div></div>
+      <div class="meta">股數：${Number(h.shares).toLocaleString()} ｜價格：${money(h.price||0,currency)}<br>${h.updatedAt?'更新：'+esc(h.updatedAt):'尚未取得報價'} ${h.error?'<span class="bad">｜'+esc(h.error)+'</span>':''}</div>
+      <div class="actions"><button class="secondary" onclick="refreshOne(${i})">更新價格</button><button class="ghost" onclick="editOne(${i})">修改</button><button class="danger" onclick="removeOne(${i})">刪除</button></div>
+    </div>`;
+  }).join('');
+  calc();
+}
+async function fetchTwse(symbol){
+  const clean=symbol.toUpperCase().replace(/\.TW$|\.TWO$/g,'');
+  const channels=[`tse_${clean}.tw`,`otc_${clean}.tw`];
+  for(const ch of channels){
+    const url=`https://mis.twse.com.tw/stock/api/getStockInfo.jsp?ex_ch=${encodeURIComponent(ch)}&json=1&delay=0&_=${Date.now()}`;
+    try{
+      const r=await fetch(url,{cache:'no-store'});
+      if(!r.ok) continue;
+      const j=await r.json();
+      const x=j.msgArray && j.msgArray[0];
+      if(x){
+        const candidates=[x.z,x.pz,x.y];
+        const p=candidates.map(Number).find(n=>Number.isFinite(n)&&n>0);
+        if(p) return p;
+      }
+    }catch(e){}
+  }
+  throw new Error('查無台股報價，可填手動價格');
+}
+async function fetchUs(symbol){
+  if(!state.apiKey) throw new Error('請先設定 Finnhub API Key');
+  const url=`https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(symbol.toUpperCase())}&token=${encodeURIComponent(state.apiKey)}`;
+  const r=await fetch(url,{cache:'no-store'});
+  if(!r.ok) throw new Error('美股報價服務連線失敗');
+  const j=await r.json();
+  const p=Number(j.c);
+  if(!p) throw new Error('查無美股報價或代號錯誤');
+  return p;
+}
+window.refreshOne=async function(i){
+  const h=state.holdings[i]; if(!h)return;
+  h.error='更新中…'; render();
+  try{
+    h.price=h.market==='TW'?await fetchTwse(h.symbol):await fetchUs(h.symbol);
+    h.updatedAt=new Date().toLocaleString('zh-TW',{hour12:false});
+    h.error='';
+  }catch(e){ h.error=e.message; }
+  save(); render();
+}
+window.removeOne=function(i){ state.holdings.splice(i,1);save();render(); }
+window.editOne=function(i){
+  const h=state.holdings[i];
+  const shares=prompt(`${h.symbol} 持有股數`,h.shares);
+  if(shares===null)return;
+  const price=prompt(`${h.symbol} 手動價格（留空保留目前價格）`,h.price||'');
+  if(Number(shares)>=0)h.shares=Number(shares);
+  if(price!==''&&Number(price)>=0){h.price=Number(price);h.updatedAt='手動輸入 '+new Date().toLocaleString('zh-TW',{hour12:false});}
+  save();render();
+}
+$('addHolding').onclick=async()=>{
+  const market=$('market').value;
+  const symbol=$('symbol').value.trim().toUpperCase();
+  const shares=Number($('shares').value);
+  const manual=Number($('manualPrice').value);
+  if(!symbol||!Number.isFinite(shares)||shares<=0){alert('請輸入股票代號與正確股數');return;}
+  const h={market,symbol,shares,price:manual>0?manual:0,updatedAt:manual>0?'手動輸入 '+new Date().toLocaleString('zh-TW',{hour12:false}):'',error:''};
+  state.holdings.push(h);save();render();
+  $('symbol').value='';$('shares').value='';$('manualPrice').value='';
+  if(!manual) await refreshOne(state.holdings.length-1);
+}
+$('refreshAll').onclick=async()=>{
+  $('globalStatus').textContent='正在更新全部持股…';
+  for(let i=0;i<state.holdings.length;i++) await refreshOne(i);
+  $('globalStatus').innerHTML='<span class="good">全部更新完成</span>';
+}
+$('refreshFx').onclick=async()=>{
+  $('globalStatus').textContent='正在更新美元匯率…';
+  try{
+    const r=await fetch('https://open.er-api.com/v6/latest/USD',{cache:'no-store'});
+    const j=await r.json(); const rate=Number(j?.rates?.TWD);
+    if(!rate)throw new Error();
+    state.fxRate=rate;save();$('fxRate').value=rate;calc();
+    $('globalStatus').innerHTML='<span class="good">匯率更新完成</span>';
+  }catch(e){$('globalStatus').innerHTML='<span class="bad">匯率更新失敗，請手動輸入</span>';}
+}
+$('saveSettings').onclick=()=>{
+  state.apiKey=$('apiKey').value.trim();
+  const fx=Number($('fxRate').value);if(fx>0)state.fxRate=fx;
+  save();calc();$('globalStatus').innerHTML='<span class="good">設定已儲存</span>';
+}
+$('clearAll').onclick=()=>{if(confirm('確定刪除全部持股？')){state.holdings=[];save();render();}}
+$('apiKey').value=state.apiKey||'';$('fxRate').value=state.fxRate||32.5;
+render();
+if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});
+</script>
+</body>
+</html>
