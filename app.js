@@ -60,6 +60,31 @@ async function fetchUs(symbol){
   const d=await r.json();if(!r.ok||!n(d.c))throw new Error("查無美股報價");
   return {price:n(d.c),previousClose:n(d.pc),name:symbol};
 }
+
+const looksLikeTw=symbol=>/^\d{4,6}$/.test(symbol);
+
+async function detectStock(symbol){
+  const order=looksLikeTw(symbol)?["TW","US"]:["US","TW"];
+  let usKeyMissing=false,lastError=null;
+
+  for(const market of order){
+    try{
+      if(market==="US"&&!state.finnhubKey){
+        usKeyMissing=true;
+        continue;
+      }
+      const quote=market==="TW"?await fetchTw(symbol):await fetchUs(symbol);
+      if(n(quote.price)>0)return {market,...quote};
+    }catch(e){
+      lastError=e;
+    }
+  }
+
+  if(!looksLikeTw(symbol)&&usKeyMissing){
+    throw new Error("請先設定 Finnhub API Key，才能驗證美股代號");
+  }
+  throw new Error("沒有此股票，請重新輸入");
+}
 window.refreshHolding=async i=>{const h=state.holdings[i];h.error="更新中";renderHoldings();try{const q=h.market==="TW"?await fetchTw(h.symbol):await fetchUs(h.symbol);Object.assign(h,q,{updatedAt:now(),error:""})}catch(e){h.error=e.message}save();render()};
 window.removeHolding=i=>{state.holdings.splice(i,1);save();render()};
 window.editHolding=i=>{const h=state.holdings[i],s=prompt(`${h.symbol} 股數`,h.shares);if(s===null)return;const p=prompt(`${h.symbol} 手動價格`,h.price||"");if(p===null)return;const g=prompt(`${h.symbol} 質押成數 %`,h.pledgeRatio||0);if(g===null)return;h.shares=n(s);if(p!==""){h.price=n(p);h.updatedAt=`手動 ${now()}`}h.pledgeRatio=Math.max(0,Math.min(100,n(g)));save();render()};
@@ -82,7 +107,51 @@ function renderHistory(){
   $("historyList").innerHTML=d.slice(-10).reverse().map(x=>`<div class="history-item"><span>${x.date}</span><strong>${money(x.total)}</strong></div>`).join("");
 }
 
-$("addHolding").onclick=async()=>{const market=$("market").value,symbol=$("symbol").value.trim().toUpperCase(),shares=n($("shares").value),price=n($("manualPrice").value),pledge=n($("pledgeRatio").value);if(!symbol||shares<=0)return toast("請輸入代號與股數");state.holdings.push({market,symbol,shares,price,previousClose:0,pledgeRatio:pledge,name:"",updatedAt:price?`手動 ${now()}`:"",error:""});save();render();if(!price)await refreshHolding(state.holdings.length-1)};
+$("addHolding").onclick=async()=>{
+  const symbol=$("symbol").value.trim().toUpperCase().replace(/\s+/g,"");
+  const shares=n($("shares").value),manualPrice=n($("manualPrice").value),pledge=n($("pledgeRatio").value);
+  if(!symbol||shares<=0)return toast("請輸入股票代號與持有股數");
+  if(state.holdings.some(h=>h.symbol===symbol))return toast("這個股票代號已經加入");
+
+  const button=$("addHolding");
+  const originalText=button.textContent;
+  button.disabled=true;
+  button.textContent="正在辨識股票…";
+  $("symbolStatus").textContent="正在自動判斷台股或美股";
+  $("symbolStatus").className="field-status";
+
+  try{
+    const detected=await detectStock(symbol);
+    const price=manualPrice>0?manualPrice:detected.price;
+    state.holdings.push({
+      market:detected.market,
+      symbol,
+      shares,
+      price,
+      previousClose:detected.previousClose,
+      pledgeRatio:Math.max(0,Math.min(100,pledge)),
+      name:detected.name||symbol,
+      updatedAt:manualPrice>0?`手動 ${now()}`:now(),
+      error:""
+    });
+    save();
+    render();
+    $("symbol").value="";
+    $("shares").value="";
+    $("manualPrice").value="";
+    $("pledgeRatio").value="";
+    $("symbolStatus").textContent=`已辨識為${detected.market==="TW"?"台股":"美股"}：${detected.name||symbol}`;
+    $("symbolStatus").className="field-status success";
+    toast(`已加入${detected.market==="TW"?"台股":"美股"} ${symbol}`);
+  }catch(e){
+    $("symbolStatus").textContent=e.message;
+    $("symbolStatus").className="field-status error";
+    toast(e.message);
+  }finally{
+    button.disabled=false;
+    button.textContent=originalText;
+  }
+};
 $("refreshAll").onclick=async()=>{try{const r=await fetch(`${state.workerUrl.replace(/\/+$/,"")}/fx`),d=await r.json();if(d.ok)state.fxRate=n(d.rate)}catch{}for(let i=0;i<state.holdings.length;i++)await refreshHolding(i);save();render();toast("更新完成")};
 $("clearHoldings").onclick=()=>{if(confirm("確定刪除全部持股？")){state.holdings=[];save();render()}};
 $("saveCash").onclick=()=>{state.cashTwd=n($("cashTwd").value);state.cashUsd=n($("cashUsd").value);save();render();toast("現金已儲存")};

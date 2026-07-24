@@ -1,11 +1,19 @@
-# 投資資產儀表板 v3
+# 投資資產儀表板 v3.1
 
-GitHub 根目錄上傳並覆蓋：
-index.html、style.css、app.js、sw.js、manifest.webmanifest、icon.svg
+## 新功能
+- 不需要手動選擇台股或美股。
+- 輸入股票代號後，系統會自動查詢並判斷市場。
+- 查不到代號時顯示「沒有此股票，請重新輸入」。
+- 美股驗證仍需要先設定 Finnhub API Key。
+- 更新 Service Worker 版本，減少 Safari 持續載入舊版的問題。
 
-Cloudflare Worker：
-將 cloudflare-worker.js 全部內容貼入 stock-dashboard-api 的 worker.js，然後部署。
+## GitHub 更新
+請上傳並覆蓋：
+- index.html
+- style.css
+- app.js
+- sw.js
+- manifest.webmanifest
+- icon.svg
 
-測試：
-https://stock-dashboard-api.eric760614.workers.dev/status
-https://stock-dashboard-api.eric760614.workers.dev/tw?symbol=0050
+`cloudflare-worker.js` 不需要重新部署。

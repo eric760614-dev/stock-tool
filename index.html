@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-title" content="資產儀表板">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=3.1.0">
   <title>投資資產儀表板</title>
 </head>
 <body>
@@ -42,9 +42,11 @@
     <section id="portfolio" class="tab-panel active">
       <article class="card">
         <div class="section-head"><h2>新增持股</h2><span>台股與美股</span></div>
-        <div class="form-grid three">
-          <label>市場<select id="market"><option value="TW">台股</option><option value="US">美股</option></select></label>
-          <label>股票代號<input id="symbol" placeholder="0050、QQQM" autocapitalize="characters"></label>
+        <div class="form-grid two">
+          <label>股票代號
+            <input id="symbol" placeholder="例如 0050、QQQM" autocapitalize="characters" autocomplete="off">
+            <small id="symbolStatus" class="field-status">系統會自動判斷台股或美股</small>
+          </label>
           <label>持有股數<input id="shares" type="number" min="0" step="any" placeholder="1000"></label>
         </div>
         <div class="form-grid two">
@@ -110,6 +112,6 @@
 
     <div id="toast" class="toast"></div>
   </main>
-  <script src="app.js"></script>
+  <script src="app.js?v=3.1.0"></script>
 </body>
 </html>
