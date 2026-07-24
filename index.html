@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-title" content="資產儀表板">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg">
-  <link rel="stylesheet" href="style.css?v=3.2.0">
+  <link rel="stylesheet" href="style.css?v=3.3.0">
   <title>投資資產儀表板</title>
 </head>
 <body>
@@ -19,7 +19,12 @@
         <p class="eyebrow">ERIC'S PORTFOLIO</p>
         <h1>投資資產儀表板</h1>
       </div>
-      <button id="refreshAll" class="primary compact">更新全部</button>
+      <div class="hero-actions">
+        <button id="refreshAll" class="primary compact">更新全部</button>
+        <button id="menuButton" class="menu-button" aria-label="開啟選單" aria-expanded="false">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
     </header>
 
     <section class="summary-grid">
@@ -32,13 +37,41 @@
       <article class="summary-card beta-card"><span>投資組合 Beta</span><strong id="portfolioBeta">--</strong><small id="betaCoverage">尚未設定持股 Beta</small></article>
     </section>
 
-    <nav class="tabs">
-      <button data-tab="portfolio" class="active">持股</button>
-      <button data-tab="allocation">配置</button>
-      <button data-tab="cash">現金／質押</button>
-      <button data-tab="history">歷史</button>
-      <button data-tab="settings">設定</button>
-    </nav>
+    <div id="menuOverlay" class="menu-overlay"></div>
+    <aside id="sideMenu" class="side-menu" aria-hidden="true">
+      <div class="side-menu-head">
+        <div>
+          <small>目前頁面</small>
+          <strong id="currentPageTitle">持股</strong>
+        </div>
+        <button id="closeMenu" class="menu-close" aria-label="關閉選單">×</button>
+      </div>
+
+      <nav class="side-menu-nav">
+        <button data-tab="portfolio" class="active">
+          <span class="menu-icon">📈</span><span>持股</span>
+        </button>
+        <button data-tab="allocation">
+          <span class="menu-icon">🥧</span><span>資產配置</span>
+        </button>
+        <button data-tab="cash">
+          <span class="menu-icon">💰</span><span>現金／質押</span>
+        </button>
+        <button data-tab="history">
+          <span class="menu-icon">🕘</span><span>資產歷史</span>
+        </button>
+        <button data-tab="settings">
+          <span class="menu-icon">⚙️</span><span>設定</span>
+        </button>
+      </nav>
+
+      <div class="side-menu-foot">選擇功能後會自動切換頁面</div>
+    </aside>
+
+    <div class="page-indicator">
+      <span id="currentPageIcon">📈</span>
+      <strong id="currentPageLabel">持股</strong>
+    </div>
 
     <section id="portfolio" class="tab-panel active">
       <article class="card">
@@ -133,6 +166,6 @@
 
     <div id="toast" class="toast"></div>
   </main>
-  <script src="app.js?v=3.2.0"></script>
+  <script src="app.js?v=3.3.0"></script>
 </body>
 </html>

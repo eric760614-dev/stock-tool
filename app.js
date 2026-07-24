@@ -206,5 +206,46 @@ $("savePledge").onclick=()=>{state.pledgeDebt=n($("pledgeDebt").value);save();re
 $("saveSettings").onclick=()=>{state.workerUrl=$("workerUrl").value.trim();state.finnhubKey=$("finnhubKey").value.trim();state.fxRate=n($("fxRate").value)||state.fxRate;save();render();toast("設定已儲存")};
 $("testWorker").onclick=async()=>{try{const r=await fetch(`${$("workerUrl").value.trim().replace(/\/+$/,"")}/status`),d=await r.json();$("settingsStatus").textContent=d.ok?`連線正常｜版本 ${d.version}`:`失敗：${d.error}`}catch(e){$("settingsStatus").textContent=`連線失敗：${e.message}`}};
 $("saveSnapshot").onclick=()=>{const date=new Date().toISOString().slice(0,10),total=totals().total,old=state.history.find(x=>x.date===date);old?old.total=total:state.history.push({date,total});save();render();toast("今天資產已記錄")};
-document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{document.querySelectorAll(".tabs button").forEach(x=>x.classList.toggle("active",x===b));document.querySelectorAll(".tab-panel").forEach(p=>p.classList.toggle("active",p.id===b.dataset.tab));render()});
-render();if("serviceWorker"in navigator)navigator.serviceWorker.register("./sw.js").catch(()=>{});
+const PAGE_META={
+  portfolio:{label:"持股",icon:"📈"},
+  allocation:{label:"資產配置",icon:"🥧"},
+  cash:{label:"現金／質押",icon:"💰"},
+  history:{label:"資產歷史",icon:"🕘"},
+  settings:{label:"設定",icon:"⚙️"}
+};
+
+function openMenu(){
+  $("sideMenu").classList.add("open");
+  $("menuOverlay").classList.add("show");
+  $("sideMenu").setAttribute("aria-hidden","false");
+  $("menuButton").setAttribute("aria-expanded","true");
+  document.body.classList.add("menu-open");
+}
+
+function closeMenu(){
+  $("sideMenu").classList.remove("open");
+  $("menuOverlay").classList.remove("show");
+  $("sideMenu").setAttribute("aria-hidden","true");
+  $("menuButton").setAttribute("aria-expanded","false");
+  document.body.classList.remove("menu-open");
+}
+
+function switchPage(tab){
+  const meta=PAGE_META[tab]||PAGE_META.portfolio;
+  document.querySelectorAll(".side-menu-nav button").forEach(x=>x.classList.toggle("active",x.dataset.tab===tab));
+  document.querySelectorAll(".tab-panel").forEach(p=>p.classList.toggle("active",p.id===tab));
+  $("currentPageTitle").textContent=meta.label;
+  $("currentPageLabel").textContent=meta.label;
+  $("currentPageIcon").textContent=meta.icon;
+  closeMenu();
+  window.scrollTo({top:0,behavior:"smooth"});
+  render();
+}
+
+$("menuButton").onclick=openMenu;
+$("closeMenu").onclick=closeMenu;
+$("menuOverlay").onclick=closeMenu;
+document.querySelectorAll(".side-menu-nav button").forEach(b=>b.onclick=()=>switchPage(b.dataset.tab));
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeMenu()});
+
+render();if("serviceWorker"in navigator)navigator.serviceWorker.register("./sw.js?v=3.3.0").catch(()=>{});
