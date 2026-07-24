@@ -1,6 +1,6 @@
 {
-  "name": "alphapilot-v6-3",
-  "version": "6.3.0",
+  "name": "alphapilot-v6-4",
+  "version": "6.4.0",
   "private": true,
   "scripts": {
     "dev": "wrangler dev",
