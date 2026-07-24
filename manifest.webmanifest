@@ -1,10 +1,10 @@
 {
-  "name": "股票總資產計算器",
-  "short_name": "股票資產",
+  "name": "投資資產儀表板",
+  "short_name": "資產儀表板",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#07101d",
-  "theme_color": "#0b1220",
+  "background_color": "#07101e",
+  "theme_color": "#081222",
   "icons": [
     {
       "src": "icon.svg",
