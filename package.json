@@ -1,0 +1,12 @@
+{
+  "name": "eric-portfolio-v4-flat",
+  "version": "4.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.68.0"
+  }
+}

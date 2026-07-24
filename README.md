@@ -1,40 +1,40 @@
-# 投資資產儀表板 v3.4｜自動 Beta
+# Eric's Portfolio V4.1｜手機友善單層架構
 
-## Beta 計算方式
-個別股票 Beta = 股票報酬與市場報酬的共變異數 ÷ 市場報酬的變異數。
+這一版沒有 `public` 或 `src` 資料夾，所有檔案都在同一個根目錄，適合使用 iPhone 的 GitHub「Upload files」。
 
-本版本使用：
-- 近兩年
-- 每週調整後收盤價
-- 台股基準：台灣加權指數
-- 美股基準：S&P 500
-- 至少 30 組對齊週報酬
+## 上傳到新 GitHub Repository
 
-投資組合 Beta：
-- 每檔股票 Beta × 該股票占總資產比重
-- 現金 Beta = 0
-- 台股與美股均先換算為新台幣市值後加權
+請一次上傳：
 
-## 新功能
-- 不需要手動輸入 Beta。
-- 新增持股時自動計算 Beta。
-- 「更新」與「更新全部」會同步重新估算 Beta。
-- 顯示各股票的 Beta 與基準指數。
-- 顯示 Beta 資料涵蓋率。
-- 保留漢堡側邊選單。
+- worker.js
+- wrangler.jsonc
+- package.json
+- README.md
 
-## 重要：這次需要更新兩個地方
+其中 `worker.js` 已經包含：
+- 完整網頁
+- CSS
+- 前端 JavaScript
+- PWA Service Worker
+- Manifest 與圖示
+- 台股 API
+- 匯率 API
+- 自動 Beta API
 
-### GitHub
-覆蓋：
-- index.html
-- style.css
-- app.js
-- sw.js
-- manifest.webmanifest
-- icon.svg
+因此不需要另外上傳 `index.html`、`app.js` 或資料夾。
 
-### Cloudflare Worker
-將 `cloudflare-worker.js` 全部內容貼到 Cloudflare 的 `worker.js`，取代舊內容，然後按「部署」。
+## Cloudflare Git 自動部署
 
-本版本的 Beta 是歷史估計值，會隨期間、頻率和基準指數改變；Beta 衡量的是市場敏感度，不是全部投資風險。
+1. Cloudflare → Workers & Pages。
+2. 建立新的 Worker，選擇連接 Git／Import a repository。
+3. 選擇新的 V4 Repository。
+4. Production branch 選 `main`。
+5. Deploy command 使用 `npx wrangler deploy`。
+6. 儲存並部署。
+
+以後只要在 GitHub 更新這些根目錄檔案，Cloudflare 就會自動部署。
+
+## 注意
+
+建議建立新的 Repository，例如 `stock-dashboard-v4`，不要先覆蓋目前正常使用的 `stock-tool`。
+新網址的瀏覽器資料與舊網址不共用，第一次使用需要重新輸入持股、現金與 Finnhub API Key。

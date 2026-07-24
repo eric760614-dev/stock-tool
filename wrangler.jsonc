@@ -1,0 +1,7 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "eric-portfolio-v4",
+  "main": "./worker.js",
+  "compatibility_date": "2026-07-24",
+  "preview_urls": true
+}
