@@ -36,5 +36,5 @@
 
 ## 注意
 
-建議建立新的 Repository，例如 `stock-dashboard-v4`，不要先覆蓋目前正常使用的 `stock-tool`。
-新網址的瀏覽器資料與舊網址不共用，第一次使用需要重新輸入持股、現金與 Finnhub API Key。
+本版已設定直接部署到既有 Worker：`stock-dashboard-api`，會沿用原本的 workers.dev 網址。
+部署前請確認 Cloudflare 專案連接的是 `eric760614-dev/stock-tool`。
