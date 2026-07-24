@@ -1,6 +1,6 @@
 {
   "name": "alphapilot-v7-2",
-  "version": "7.3.0",
+  "version": "8.0.0",
   "private": true,
   "scripts": {
     "dev": "wrangler dev",
@@ -9,5 +9,5 @@
   "devDependencies": {
     "wrangler": "^4.68.0"
   },
-  "description": "AlphaPilot V7.3 — automatic Beta and cross-browser PWA"
+  "description": "AlphaPilot V8 target beta portfolio dashboard"
 }
