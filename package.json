@@ -1,6 +1,6 @@
 {
-  "name": "alphapilot-v8-9",
-  "version": "8.9.0",
+  "name": "alphapilot-v9-0",
+  "version": "9.0.0",
   "private": true,
   "scripts": {
     "dev": "wrangler dev",
@@ -9,5 +9,5 @@
   "devDependencies": {
     "wrangler": "^4.68.0"
   },
-  "description": "AlphaPilot V8.9 stable target beta portfolio dashboard"
+  "description": "AlphaPilot V9.0 stable portfolio and pledge risk dashboard"
 }
