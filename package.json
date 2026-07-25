@@ -1,6 +1,6 @@
 {
-  "name": "alphapilot-v9-3-3",
-  "version": "9.3.3",
+  "name": "alphapilot-worker",
+  "version": "9.4.0",
   "private": true,
   "scripts": {
     "deploy": "wrangler deploy"
