@@ -1,5 +1,8 @@
-AlphaPilot V9.5.1 完整雙主題版
+# AlphaPilot V9.5.2
 
-部署：將本 ZIP 的全部檔案上傳至 GitHub repository 根目錄，Cloudflare Workers 會自動部署。
+修正太陽模式下 Canvas 圓餅圖外側標籤未重新繪製的問題。
 
-本版完整修正亮色模式的文字、卡片、表單、側邊選單、狀態色與瀏覽器主題色。
+- 太陽模式下股票代號、現金與市場名稱使用深藍灰
+- 百分比使用加深後的對應色
+- 切換主題與進入資產配置分頁時強制重繪兩張圓餅圖
+- 更新 Service Worker 快取版本，避免沿用舊版 JavaScript
