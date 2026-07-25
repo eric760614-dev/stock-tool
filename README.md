@@ -1,13 +1,12 @@
-# AlphaPilot V9.0 Stable
+# AlphaPilot V9.0.1 UI
 
-Cloudflare Worker 單檔部署版。
+以 V9.0 Stable 為基礎的介面微調版。
 
-## V9.0 更新
-- 質押紀錄的「刪除」按鈕改為與持股刪除相同的紅色危險操作樣式。
-- 首頁在有質押紀錄時，自動顯示最低質押維持率與對應股票。
-- 維持率會隨持股最新市值與匯率重新計算，首頁同步更新。
-- 最低維持率低於 166% 顯示警示色，低於 140% 顯示高風險色。
-- 點擊首頁「查看質押紀錄」可直接切換到風險模擬頁。
-- 保留 V8.9 的質押金額上限驗證與全部既有功能。
+## 調整內容
+- 「我的持股」改用獨立的青綠深色內框，不再與「新增持股」相同。
+- 「現金部位」改用獨立的靛紫深色內框。
+- 持股清單的股票代號、市值、標籤、明細與操作按鈕字體略微縮小。
+- 保留 V9.0 的全部功能與既有 LocalStorage 資料格式。
 
-部署時將 `worker.js`、`wrangler.jsonc`、`package.json`、`README.md` 覆蓋至 GitHub。
+## 部署
+將 worker.js、wrangler.jsonc、package.json、README.md 覆蓋到 GitHub，等待 Cloudflare 自動部署。
