@@ -1,4 +1,4 @@
-AlphaPilot V9.5.0 完整雙主題版
+AlphaPilot V9.5.1 完整雙主題版
 
 部署：將本 ZIP 的全部檔案上傳至 GitHub repository 根目錄，Cloudflare Workers 會自動部署。
 
