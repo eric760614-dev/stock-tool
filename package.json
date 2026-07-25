@@ -1,5 +1,5 @@
 {
-  "name": "alphapilot-v9-0-1",
+  "name": "alphapilot-v9-0",
   "version": "9.0.1",
   "private": true,
   "scripts": {
@@ -9,5 +9,5 @@
   "devDependencies": {
     "wrangler": "^4.68.0"
   },
-  "description": "AlphaPilot V9.0.1 UI portfolio and pledge risk dashboard"
+  "description": "AlphaPilot V9.0 stable portfolio and pledge risk dashboard"
 }

@@ -1,12 +1,15 @@
-# AlphaPilot V9.0.1 UI
+# AlphaPilot V9.0.1 UI 修正版
 
-以 V9.0 Stable 為基礎的介面微調版。
+以使用者提供的 AlphaPilot V9.0 Stable 為基礎，只調整介面：
 
-## 調整內容
-- 「我的持股」改用獨立的青綠深色內框，不再與「新增持股」相同。
-- 「現金部位」改用獨立的靛紫深色內框。
-- 持股清單的股票代號、市值、標籤、明細與操作按鈕字體略微縮小。
-- 保留 V9.0 的全部功能與既有 LocalStorage 資料格式。
+- 「我的持股」卡片改為偏青綠深色內框
+- 「現金部位」卡片改為偏靛紫深色內框
+- 持股清單字體略微縮小
+- 保留 V9.0 的所有功能、資料格式與質押風險卡片
+- 修正上一個 V9.0.1 套件遺漏 `staticResponse` 所造成的 Cloudflare Error 1101
 
-## 部署
-將 worker.js、wrangler.jsonc、package.json、README.md 覆蓋到 GitHub，等待 Cloudflare 自動部署。
+部署時覆蓋：
+- worker.js
+- wrangler.jsonc
+- package.json
+- README.md
