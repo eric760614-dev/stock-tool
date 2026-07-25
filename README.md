@@ -1,15 +1,11 @@
-# AlphaPilot V9.1.1
+# AlphaPilot V9.1.2｜現金 UI 精修版
 
-以 V9.1.0 為基礎：
+本版以 V9.1.1 穩定版為基礎，只調整現金部位介面：
 
-- 現金部位的「幣別」與「金額」改為同一橫列
-- 左側選擇幣別
-- 右側輸入金額
-- 手機版仍維持適合單手操作的寬度
-- 其他持股、質押、備份與多幣別功能不變
+- 幣別／金額欄位約 28%／72%
+- 欄位高度、圓角、內距與字體統一
+- Label 對齊
+- 現金換算改用「≈ NT$」格式
+- 修改與刪除改為一致的 SVG 圖示
 
-部署時覆蓋：
-- worker.js
-- wrangler.jsonc
-- package.json
-- README.md
+Cloudflare Git 部署只需：`worker.js`、`wrangler.jsonc`、`package.json`、`README.md`。
