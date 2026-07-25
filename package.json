@@ -1,6 +1,6 @@
 {
-  "name": "alphapilot-v8-6",
-  "version": "8.6.0",
+  "name": "alphapilot-v8-7",
+  "version": "8.7.0",
   "private": true,
   "scripts": {
     "dev": "wrangler dev",
@@ -9,5 +9,5 @@
   "devDependencies": {
     "wrangler": "^4.68.0"
   },
-  "description": "AlphaPilot V8.6 stable target beta portfolio dashboard"
+  "description": "AlphaPilot V8.7 stable target beta portfolio dashboard"
 }
