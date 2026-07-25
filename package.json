@@ -9,5 +9,5 @@
   "devDependencies": {
     "wrangler": "^4.68.0"
   },
-  "description": "AlphaPilot V9.1 stable portfolio and pledge risk dashboard"
+  "description": "AlphaPilot V9.0 stable portfolio and pledge risk dashboard"
 }
