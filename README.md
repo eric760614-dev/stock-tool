@@ -1,21 +1,13 @@
-# AlphaPilot V8.5 Stable
+# AlphaPilot V8.6 Stable
 
 Cloudflare Worker 單檔投資組合工具。
 
-## V8 重點
-- 目標 Portfolio Beta（預設 1.20）
-- Beta Advisor：以簡潔文字提供配置調整方向
-- 聰明再平衡顯示調整後 Beta
-- Investment Score
-- Beta 全自動，無手動 Beta 欄位
-- 支援 Safari、Chrome、Edge、Firefox 與安裝成 PWA
-- 保留持股合併、報價、備份還原、質押與歷史功能
-
-將四個檔案推送至 GitHub，Cloudflare Workers 會自動部署。
-
-
-## V8.5 Stable 修正
-- 修正新增持股時 `betaSourceText` 未定義造成的畫面中斷。
-- 修正資料已儲存，但持股清單無法顯示的問題。
-- 更新 Safari、Chrome 與 PWA 快取版本。
+## V8.6 改善
+- AU9901 改採櫃買中心最近收盤／最近成交資料，不再依賴盤中即時報價。
+- 黃金資料來源短暫失敗時，既有持股會沿用上一次成功取得的收盤價，不會把市值歸零。
+- 備份區只保留一個「匯入記錄檔」按鈕，隱藏瀏覽器原生的「尚未選取檔案」欄位。
 - 沿用既有 LocalStorage 資料格式，不需重新輸入持股。
+- 更新 Safari、Chrome 與 PWA 快取版本。
+
+## 部署
+將 `worker.js`、`wrangler.jsonc`、`package.json`、`README.md` 四個檔案推送至 GitHub，Cloudflare Workers 會自動部署。
