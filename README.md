@@ -1,17 +1,13 @@
-# AlphaPilot V9.0.3
+# AlphaPilot V9.1.0
 
-以 V9.0.2 為基礎：
+- 持股修改只修改股數
+- 自動報價失敗時沿用舊價格，價格旁顯示黃色警告符號
+- 報價成功後警告自動消失
+- 現金改為多幣別清單
+- 支援 TWD、USD、EUR、JPY、GBP、CNY、HKD、AUD、CAD、SGD
+- 重複幣別自動累加
+- 現金部位可獨立修改與刪除
+- 舊版台幣／美元現金自動移轉
+- 更新全部同步更新匯率與持股
 
-- 持股展開後的修改／刪除移到右側
-- 修改改用板手圖示
-- 刪除改用垃圾桶圖示
-- 移除每檔持股的更新時間文字
-- 移除 Beta 後方的「自動」字樣
-- 保留上方整體更新按鈕與全功能
-- 資料格式不變
-
-部署時覆蓋：
-- worker.js
-- wrangler.jsonc
-- package.json
-- README.md
+部署覆蓋 worker.js、wrangler.jsonc、package.json、README.md。

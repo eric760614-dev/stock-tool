@@ -1,6 +1,6 @@
 {
   "name": "alphapilot-v9-0",
-  "version": "9.0.3",
+  "version": "9.1.0",
   "private": true,
   "scripts": {
     "dev": "wrangler dev",
