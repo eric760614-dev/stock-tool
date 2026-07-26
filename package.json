@@ -1,6 +1,6 @@
 {
-  "name": "alphapilot-v11-color-glass",
-  "version": "11.0.0",
+  "name": "alphapilot-v11-unified-icons",
+  "version": "11.0.1",
   "private": true,
   "scripts": {
     "deploy": "wrangler deploy"
