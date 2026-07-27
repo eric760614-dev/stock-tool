@@ -1,77 +1,20 @@
-# AlphaPilot V11.1.0 — 彩色玻璃 UI
+# AlphaPilot V12.0.0 — PWA App 版
 
-本版以 V10.2.0 為基礎，只重做非首頁功能頁的視覺層：
+以 V11.1.0 為基礎，保留 AU9901 報價、智慧搜尋、Skeleton Loading 與動畫，加入完整 PWA：
 
-- 首頁與首頁漸層總資產卡完全不變
-- 持股：藍色玻璃
-- 現金：青綠玻璃
-- 資產配置：青色玻璃
-- Beta／風險：紫色玻璃
-- 聰明再平衡：綠色玻璃
-- 質押：橘色玻璃
-- 固定支出：金色玻璃
-- 資產歷史：橘紅玻璃
-- 設定：灰紫玻璃
-- 深色與太陽模式均有清楚文字對比
-- 統一圓角、陰影、透明度與手機緊湊排版
-
-未更動投資、貸款、質押、Beta、再平衡或資料結構邏輯。
+- iPhone／Android 主畫面安裝
+- Standalone 全螢幕模式
+- 180、192、512 PNG App 圖示與 Maskable Icon
+- 啟動畫面與安全區適配
+- 首次安裝引導（iPhone 顯示 Safari 加入主畫面步驟）
+- 離線 App Shell 與離線提示頁
+- Service Worker 新版本提示與一鍵更新
+- App Shortcuts：新增持股、資產配置
 
 ## 部署
 
-將本資料夾四個檔案覆蓋至 GitHub 專案根目錄並 Commit，Cloudflare 會自動部署。
+將本資料夾的 `worker.js`、`package.json`、`wrangler.jsonc`、`README.md` 覆蓋至 GitHub 專案根目錄並 Commit，Cloudflare 自動部署。
 
+## iPhone 安裝
 
-## V11.1.0 修正
-
-- 持股展開後的修改／刪除操作按鈕下移，與持股資訊區垂直置中
-- SVG 圖示在按鈕內強制水平與垂直置中，避免 iPhone Safari 基準線偏移
-- 未更動任何投資邏輯、資料結構、配色或功能
-
-
-## V11.1.0
-- AU9901／AU9902 優先抓取 TPEx 黃金現貨即時行情頁。
-- 即時頁無法取得時，自動降級至 TPEx 官方 OpenAPI，再降級至官方下載資料。
-- 不改動其他股票、Beta、資產或再平衡邏輯。
-
-
-## V11.1.0 AU9901 報價修正
-- 改以 TPEx `tpex_gold_latest` OpenAPI 為主要來源。
-- 支援中英文與不同命名格式的欄位，自動搜尋 AU9901／AU9902。
-- 價格依序採最近成交價、當日均價、造市商買賣報價中間值、前日價格。
-- API 失敗時回傳具體診斷原因，方便確認 HTTP 狀態或欄位異動。
-
-
-## V11.1.0 修正
-- AU9901／AU9902 改為櫃買中心多來源報價：OpenAPI、官方行情 JSON、即時行情頁三層備援。
-- 支援物件列與欄位＋陣列形式的官方 JSON，避免櫃買中心欄位格式改版後查無價格。
-- 關閉黃金報價上游快取，避免取得錯誤或過期回應。
-
-
-## V11.1.0 AU9901 Cloudflare Worker 相容性修正
-- 確認問題不是輸入格式，而是 TPEx 官方資料來源可能封鎖或拒絕部分 Cloudflare Worker 出口 IP。
-- 保留 TPEx OpenAPI、官方行情 JSON、即時行情頁三層來源。
-- 新增 Yahoo Finance `AU9901.TWO`／`AU9902.TWO` 第四層備援，直接讀取最新價或最近收盤價。
-- 更新前端提示與 Service Worker 快取版本，避免手機繼續載入 V11.1.0。
-
-
-## V11.1.0 AU9901 實際來源修正
-- 修正上一版錯誤假設：Yahoo Finance 並未穩定提供 `AU9901.TWO`，因此不能作為有效主要備援。
-- 新增玩股網 AU9901／AU9902 公開行情頁解析，取得 TPEx 延遲成交價。
-- 來源順序改為：TPEx OpenAPI → TPEx 官方行情 JSON → TPEx 即時頁 → 玩股網公開行情頁 → Yahoo 最後診斷備援。
-- API 全部失敗時保留完整上游錯誤訊息，方便後續定位。
-- 更新前端、Manifest 與 Service Worker 版本至 V11.1.0。
-
-
-## V11.1.0 Cloudflare subrequest 上限修正
-- 根據實際錯誤紀錄，移除會造成重導迴圈的 TPEx 多來源輪詢。
-- AU9901/AU9902 每次查價最多只發出 2 個外部請求。
-- 優先 Yahoo 台股公開頁，失敗才查玩股網。
-- 成功報價在 Cloudflare Cache API 快取 5 分鐘，避免重複消耗 subrequest。
-
-
-## V11.1.0 介面優化
-- 股票代號與名稱即時搜尋，支援鍵盤方向鍵與點選。
-- 查價與辨識時顯示 Skeleton Loading。
-- 加入持股按鈕新增流動漸層、掃光與成功回饋動畫。
-- 保留 V11.0.10 的 AU9901 Cloudflare subrequest 修正。
+請用 Safari 開啟網站，點分享按鈕 → 加入主畫面 → 加入。首次安裝後會以獨立 App 模式啟動。
