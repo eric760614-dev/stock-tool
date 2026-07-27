@@ -1,4 +1,4 @@
-# AlphaPilot V11.0.4 — 彩色玻璃 UI
+# AlphaPilot V11.0.5 — 彩色玻璃 UI
 
 本版以 V10.2.0 為基礎，只重做非首頁功能頁的視覺層：
 
@@ -46,3 +46,10 @@
 - AU9901／AU9902 改為櫃買中心多來源報價：OpenAPI、官方行情 JSON、即時行情頁三層備援。
 - 支援物件列與欄位＋陣列形式的官方 JSON，避免櫃買中心欄位格式改版後查無價格。
 - 關閉黃金報價上游快取，避免取得錯誤或過期回應。
+
+
+## V11.0.5 AU9901 Cloudflare Worker 相容性修正
+- 確認問題不是輸入格式，而是 TPEx 官方資料來源可能封鎖或拒絕部分 Cloudflare Worker 出口 IP。
+- 保留 TPEx OpenAPI、官方行情 JSON、即時行情頁三層來源。
+- 新增 Yahoo Finance `AU9901.TWO`／`AU9902.TWO` 第四層備援，直接讀取最新價或最近收盤價。
+- 更新前端提示與 Service Worker 快取版本，避免手機繼續載入 V11.0.4。
