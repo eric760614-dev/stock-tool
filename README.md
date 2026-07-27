@@ -1,4 +1,4 @@
-# AlphaPilot V11.0.5 — 彩色玻璃 UI
+# AlphaPilot V11.0.6 — 彩色玻璃 UI
 
 本版以 V10.2.0 為基礎，只重做非首頁功能頁的視覺層：
 
@@ -53,3 +53,11 @@
 - 保留 TPEx OpenAPI、官方行情 JSON、即時行情頁三層來源。
 - 新增 Yahoo Finance `AU9901.TWO`／`AU9902.TWO` 第四層備援，直接讀取最新價或最近收盤價。
 - 更新前端提示與 Service Worker 快取版本，避免手機繼續載入 V11.0.4。
+
+
+## V11.0.6 AU9901 實際來源修正
+- 修正上一版錯誤假設：Yahoo Finance 並未穩定提供 `AU9901.TWO`，因此不能作為有效主要備援。
+- 新增玩股網 AU9901／AU9902 公開行情頁解析，取得 TPEx 延遲成交價。
+- 來源順序改為：TPEx OpenAPI → TPEx 官方行情 JSON → TPEx 即時頁 → 玩股網公開行情頁 → Yahoo 最後診斷備援。
+- API 全部失敗時保留完整上游錯誤訊息，方便後續定位。
+- 更新前端、Manifest 與 Service Worker 版本至 V11.0.6。
