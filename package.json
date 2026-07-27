@@ -1,6 +1,6 @@
 {
   "name": "alphapilot-v11-color-glass",
-  "version": "11.0.2",
+  "version": "11.0.4",
   "private": true,
   "scripts": {
     "deploy": "wrangler deploy"
