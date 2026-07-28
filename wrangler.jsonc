@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "stock-dashboard-api",
+  "name": "stock-tool",
   "main": "./worker.js",
   "compatibility_date": "2026-07-24",
   "preview_urls": true
