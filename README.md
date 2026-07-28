@@ -1,4 +1,4 @@
-# AlphaPilot V12.0.0 — PWA App 版
+# AlphaPilot V12.0.1 — PWA App 版
 
 以 V11.1.0 為基礎，保留 AU9901 報價、智慧搜尋、Skeleton Loading 與動畫，加入完整 PWA：
 
