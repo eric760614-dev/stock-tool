@@ -1093,7 +1093,7 @@ function calculateRebalance(){
     ?`目標 ${fmt(targetBeta(),2)}｜${Math.abs(betaGap)<=0.03?"已接近目標":`仍相差 ${betaGap>=0?"+":""}${fmt(betaGap,2)}`}`
     :`Beta 覆蓋 ${fmt(projectedBetaCoverage,1)}%｜缺少 ${missingBetaSymbols.join("、")}，建議手動輸入後再判斷風險`;
   const betaSourceNote=manualBetaSymbols.length?`｜已採用手動 Beta：${manualBetaSymbols.join("、")}`:"";
-  const summary=`<div class="rebalance-summary"><div><span>目前資產</span><strong>${money(currentTotal)}</strong><small>與首頁總資產一致，含現金 ${money(availableCash)}</small></div><div><span>新增資金</span><strong>${money(capital)}</strong></div><div><span>再平衡後</span><strong>${money(targetTotal)}</strong></div></div>
+  const summary=`<div class="rebalance-summary"><div><span>目前資產</span><strong>${money(currentTotal)}</strong></div><div><span>新增資金</span><strong>${money(capital)}</strong></div><div><span>再平衡後</span><strong>${money(targetTotal)}</strong></div></div>
   <div class="rebalance-beta-result"><span>調整後 Portfolio Beta</span><strong>${projectedBeta===null?"--":fmt(projectedBeta,2)}</strong><small>${betaStatus}${betaSourceNote}</small></div>
   ${groupNotes.length?`<div class="smart-group-results"><div class="smart-group-title"><strong>同性質群組建議</strong><small>群組內標的可互相替代；推薦順序優先降低換匯。</small></div>${groupNotes.join("")}</div>`:""}
   <div class="rebalance-flow"><span>預計賣出 <strong>${money(sellTotal)}</strong></span><span>預計買入 <strong>${money(buyTotal)}</strong></span><span>淨投入 <strong>${money(net)}</strong></span></div>`;
