@@ -3,38 +3,65 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#081222">
+  <meta name="theme-color" content="#081222" id="themeColorMeta">
+  <meta name="color-scheme" content="dark light">
   <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="資產儀表板">
+  <meta name="apple-mobile-web-app-title" content="AlphaPilot">
+  <meta name="application-name" content="AlphaPilot">
+  <meta name="format-detection" content="telephone=no">
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="icon" href="icon.svg">
-  <link rel="stylesheet" href="style.css?v=3.4.0">
-  <title>投資資產儀表板</title>
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+  <link rel="stylesheet" href="style.css?v=12.1.0">
+  <title>AlphaPilot V12.1.0</title>
 </head>
 <body>
+  <div id="pwaSplash" class="pwa-splash" aria-hidden="true">
+    <div class="pwa-splash-orbit"><img src="icon.svg" alt=""></div>
+    <strong>AlphaPilot</strong><span>Portfolio Intelligence</span>
+  </div>
+  <div id="pwaInstallCard" class="pwa-install-card" hidden>
+    <img src="icon.svg" alt="AlphaPilot">
+    <div><strong>安裝 AlphaPilot</strong><span id="pwaInstallText">加入主畫面後，可像 App 一樣全螢幕開啟。</span></div>
+    <button id="pwaInstallButton" type="button">安裝</button>
+    <button id="pwaInstallClose" class="pwa-install-close" type="button" aria-label="關閉">×</button>
+  </div>
+  <div id="pwaUpdateCard" class="pwa-update-card" hidden>
+    <div><strong>AlphaPilot 有新版本</strong><span>按一下立即更新，不會影響持股資料。</span></div>
+    <button id="pwaUpdateButton" type="button">立即更新</button>
+  </div>
   <main class="app">
     <header class="hero">
       <div>
-        <p class="eyebrow">ERIC'S PORTFOLIO</p>
-        <h1>投資資產儀表板</h1>
+        <div class="brand-lockup">
+          <img src="icon.svg" class="brand-icon" alt="AlphaPilot">
+          <div><p class="eyebrow">ERIC'S PORTFOLIO</p><h1>AlphaPilot <em>V12.1.0</em></h1></div>
+        </div>
       </div>
       <div class="hero-actions">
-        <button id="refreshAll" class="primary compact">更新全部</button>
+        <button id="themeToggle" class="icon-action" aria-label="切換外觀">☾</button><button id="refreshAll" class="primary compact">更新全部</button>
         <button id="menuButton" class="menu-button" aria-label="開啟選單" aria-expanded="false">
           <span></span><span></span><span></span>
         </button>
       </div>
     </header>
+    <section id="dashboard" class="tab-panel active dashboard-panel">
+
 
     <section class="summary-grid">
       <article class="summary-card total"><span>總資產（新台幣）</span><strong id="totalTwd">NT$0</strong><small id="lastUpdated">尚未更新</small></article>
       <article class="summary-card"><span>今日損益</span><strong id="dailyPnl">NT$0</strong><small id="dailyPnlPct">0.00%</small></article>
       <article class="summary-card"><span>台股市值</span><strong id="twTotal">NT$0</strong><small id="twCount">0 檔</small></article>
       <article class="summary-card"><span>美股市值</span><strong id="usTotal">US$0</strong><small id="fxText">USD/TWD --</small></article>
-      <article class="summary-card"><span>現金</span><strong id="cashTotal">NT$0</strong><small>台幣＋美元換算</small></article>
-      <article class="summary-card"><span>可質押額度</span><strong id="pledgeTotal">NT$0</strong><small id="pledgeText">依自訂成數</small></article>
-      <article class="summary-card beta-card"><span>投資組合 Beta</span><strong id="portfolioBeta">--</strong><small id="betaCoverage">尚未設定持股 Beta</small></article>
+      <article class="summary-card"><span>現金</span><strong id="cashTotal">NT$0</strong><small>多幣別換算</small></article>
+      <article class="summary-card beta-card beta-goal-card"><span>投資組合 Beta</span><strong id="portfolioBeta">--</strong><small id="betaGoalSummary">目標 1.20</small><button id="openBetaAdvisor" class="mini-link" type="button">查看調整建議</button></article>
+      <article class="summary-card score-card"><span>Investment Score</span><strong id="investmentScore">--</strong><small id="scoreSummary">等待持股資料</small></article>
+      <article id="pledgeRiskCard" class="summary-card pledge-risk-card" hidden><span>最低質押維持率</span><strong id="lowestPledgeRatio">--</strong><small id="lowestPledgeSymbol">尚無質押紀錄</small><button id="openPledgeRisk" class="mini-link" type="button">查看質押紀錄</button></article>
+    </section>
     </section>
 
     <div id="menuOverlay" class="menu-overlay"></div>
@@ -42,26 +69,37 @@
       <div class="side-menu-head">
         <div>
           <small>目前頁面</small>
-          <strong id="currentPageTitle">持股</strong>
+          <strong id="currentPageTitle">首頁</strong>
         </div>
-        <button id="closeMenu" class="menu-close" aria-label="關閉選單">×</button>
+        <button id="closeMenu" class="menu-close" aria-label="關閉選單">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg>
+        </button>
       </div>
 
       <nav class="side-menu-nav">
-        <button data-tab="portfolio" class="active">
-          <span class="menu-icon">📈</span><span>持股</span>
+        <button data-tab="dashboard" class="active">
+          <span class="menu-icon">⌂</span><span>首頁</span>
+        </button>
+        <button data-tab="portfolio">
+          <span class="menu-icon">⌁</span><span>持股</span>
         </button>
         <button data-tab="allocation">
-          <span class="menu-icon">🥧</span><span>資產配置</span>
+          <span class="menu-icon">◔</span><span>資產配置</span>
         </button>
-        <button data-tab="cash">
-          <span class="menu-icon">💰</span><span>現金／質押</span>
+        <button data-tab="rebalance">
+          <span class="menu-icon">◇</span><span>聰明再平衡</span>
+        </button>
+        <button data-tab="risk">
+          <span class="menu-icon">⬡</span><span>風險模擬</span>
         </button>
         <button data-tab="history">
-          <span class="menu-icon">🕘</span><span>資產歷史</span>
+          <span class="menu-icon">◷</span><span>資產歷史</span>
+        </button>
+        <button data-tab="expenses">
+          <span class="menu-icon">▤</span><span>固定支出</span>
         </button>
         <button data-tab="settings">
-          <span class="menu-icon">⚙️</span><span>設定</span>
+          <span class="menu-icon">⚙</span><span>設定</span>
         </button>
       </nav>
 
@@ -69,84 +107,226 @@
     </aside>
 
     <div class="page-indicator">
-      <span id="currentPageIcon">📈</span>
-      <strong id="currentPageLabel">持股</strong>
+      <span id="currentPageIcon">🏠</span>
+      <strong id="currentPageLabel">首頁</strong>
     </div>
 
-    <section id="portfolio" class="tab-panel active">
+    <section id="portfolio" class="tab-panel">
       <article class="card">
         <div class="section-head"><h2>新增持股</h2><span>台股與美股</span></div>
         <div class="form-grid two">
           <label>股票代號
-            <input id="symbol" placeholder="例如 0050、QQQM" autocapitalize="characters" autocomplete="off">
-            <small id="symbolStatus" class="field-status">系統會自動判斷台股或美股</small>
+            <div class="stock-search-wrap">
+              <input id="symbol" placeholder="輸入代號或名稱，例如 0050、台積電、QQQM" autocapitalize="characters" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="stockSuggestions">
+              <span class="stock-search-icon" aria-hidden="true">⌕</span>
+              <div id="stockSuggestions" class="stock-suggestions" role="listbox" hidden></div>
+            </div>
+            <small id="symbolStatus" class="field-status">可輸入股票代號或名稱搜尋；系統會自動判斷台股、美股與黃金現貨</small>
           </label>
           <label>持有股數<input id="shares" type="number" min="0" step="any" placeholder="1000"></label>
         </div>
         <div class="form-grid two">
           <label>手動價格（選填）<input id="manualPrice" type="number" min="0" step="any" placeholder="報價失敗時使用"></label>
-          <label>質押成數（選填）<input id="pledgeRatio" type="number" min="0" max="100" step="1" placeholder="例如 60"></label>
+          <label>手動 Beta（選填）<input id="manualBeta" type="number" min="0" max="10" step="0.01" inputmode="decimal" placeholder="新上市／無法回測時使用"></label>
         </div>
-        <div class="auto-beta-hint">📐 Beta 會依近兩年每週報酬，自動與市場指數比較計算，不需要手動輸入。</div>
-        <button id="addHolding" class="primary full">加入持股</button>
+        <div class="auto-beta-hint compact-hint">📐 Beta 預設由系統自動判斷；新上市或資料不足時可直接輸入手動 Beta。手動值會保留，按「更新全部」也不會覆蓋。</div>
+        <div id="quoteSkeleton" class="quote-skeleton" hidden aria-hidden="true">
+          <div class="skeleton-row"><span class="skeleton-circle"></span><span class="skeleton-line long"></span></div>
+          <div class="skeleton-line medium"></div>
+          <div class="skeleton-line short"></div>
+        </div>
+        <button id="addHolding" class="primary full animated-gradient-button"><span class="button-label">加入持股</span><span class="button-shine" aria-hidden="true"></span></button>
       </article>
 
-      <article class="card">
+      <article class="card holdings-card">
         <div class="section-head"><h2>我的持股</h2><button id="clearHoldings" class="text-button danger-text">全部清除</button></div>
         <div id="holdingsList" class="holding-list"></div>
+      </article>
+
+      <article class="card cash-position-card">
+        <div class="section-head"><h2>現金部位</h2><span>納入總資產</span></div>
+        <div class="form-grid two cash-entry-grid">
+          <label>幣別
+            <select id="cashCurrency">
+              <option value="TWD" title="TWD－新台幣">TWD</option>
+              <option value="USD" title="USD－美元">USD</option>
+              <option value="EUR" title="EUR－歐元">EUR</option>
+              <option value="JPY" title="JPY－日圓">JPY</option>
+              <option value="GBP" title="GBP－英鎊">GBP</option>
+              <option value="CNY" title="CNY－人民幣">CNY</option>
+              <option value="HKD" title="HKD－港幣">HKD</option>
+              <option value="AUD" title="AUD－澳幣">AUD</option>
+              <option value="CAD" title="CAD－加拿大幣">CAD</option>
+              <option value="SGD" title="SGD－新加坡幣">SGD</option>
+            </select>
+          </label>
+          <label>金額<input id="cashAmount" type="number" min="0" step="any" inputmode="decimal" placeholder="例如 100000"></label>
+        </div>
+        <button id="addCash" class="primary full">新增現金部位</button>
+        <div id="cashPositionList" class="cash-position-list"></div>
       </article>
     </section>
 
     <section id="allocation" class="tab-panel">
       <article class="card cute-card">
         <div class="section-head"><h2>市場配置</h2><span>台股／美股／現金</span></div>
-        <canvas id="marketChart" width="500" height="500"></canvas>
+        <canvas id="marketChart" class="neon-market-chart" width="720" height="560"></canvas>
         <div id="marketLegend" class="legend"></div>
       </article>
 
       <article class="card">
         <div class="section-head"><h2>持股配置</h2><span>依個別股票市值</span></div>
-        <canvas id="allocationChart" width="500" height="500"></canvas>
+        <canvas id="allocationChart" class="neon-allocation-chart" width="760" height="640"></canvas>
         <div id="allocationLegend" class="legend"></div>
       </article>
 
-      <article class="card">
-        <div class="section-head"><h2>Beta 風險資訊</h2><span>市值加權</span></div>
-        <div class="beta-display">
-          <div>
-            <small>目前總 Beta</small>
-            <strong id="betaDetail">--</strong>
-          </div>
-          <div class="beta-meter"><span id="betaMeterFill"></span></div>
-          <p id="betaDescription">新增或更新持股後，系統會自動計算 Beta。</p>
+      <article class="card beta-center">
+        <div class="section-head"><div><p class="eyebrow">BETA ADVISOR</p><h2>目標 Beta</h2></div><span>自動判斷</span></div>
+        <div class="beta-simple-grid">
+          <div><span>目前</span><strong id="betaDetail">--</strong></div>
+          <div><span>目標</span><strong id="betaTargetDisplay">1.20</strong></div>
         </div>
-        <div class="beta-note">台股以台灣加權指數為基準，美股以 S&amp;P 500 為基準；使用近兩年每週報酬估算。現金 Beta = 0，投資組合 Beta 依總資產市值加權。</div>
+        <p id="betaDescription" class="beta-simple-message">新增或更新持股後，系統會自動計算。</p>
+        <div id="betaAdvisorResult" class="advisor-box">尚無調整建議</div>
       </article>
     </section>
 
-    <section id="cash" class="tab-panel">
-      <article class="card">
-        <div class="section-head"><h2>現金部位</h2><span>納入總資產</span></div>
-        <div class="form-grid two">
-          <label>台幣現金<input id="cashTwd" type="number" min="0" step="any"></label>
-          <label>美元現金<input id="cashUsd" type="number" min="0" step="any"></label>
+    
+<section id="rebalance" class="tab-panel">
+  <div class="section-head"><div><p class="eyebrow">SMART REBALANCE</p><h2>聰明再平衡</h2></div></div>
+  <article class="panel glass-panel">
+    <p class="helper-copy">可把同性質標的合併成一個配置群組，例如「00662 + QQQM = 20%」。群組內不強迫固定比例，系統會依目前部位與可用幣別推薦要增加哪一檔，並優先同市場互轉以減少換匯。未加入群組的股票仍可單獨設定比例。</p>
+    <div class="group-config-head"><div><strong>同性質資產群組</strong><small>自訂哪些股票可以互相替代</small></div><button id="addAllocationGroup" class="secondary compact" type="button">＋ 新增群組</button></div>
+    <div id="allocationGroupList" class="allocation-group-list"></div>
+    <div class="group-total-row"><span>群組有效目標比例合計</span><strong id="groupTargetTotal">0%</strong></div>
+    <div class="ungrouped-title"><strong>未分組持股比例</strong><small>群組外的持股在這裡設定個別目標</small></div>
+    <label>新增資金（TWD）
+      <input id="newCapital" type="number" inputmode="decimal" placeholder="可填 0，例如 3000000">
+    </label>
+    <div id="targetWeightList" class="target-weight-list"></div>
+    <div class="weight-total-row"><span>有效目標比例合計</span><strong id="targetWeightTotal">0%</strong></div>
+    <button id="calcRebalance" class="primary full">計算完整再平衡</button>
+    <div id="rebalanceResult" class="result-stack"></div>
+  </article>
+</section>
+
+
+<section id="risk" class="tab-panel">
+  <article class="card scenario-card">
+        <div class="section-head"><div><p class="eyebrow">SCENARIO</p><h2>市場情境模擬</h2></div><span>線性概算</span></div>
+        <label>假設大盤漲跌
+          <input id="marketScenario" type="range" min="-40" max="40" value="-20" step="1">
+        </label>
+        <div class="scenario-grid">
+          <div><span>市場情境</span><strong id="marketScenarioText">-20%</strong></div>
+          <div><span>組合預估波動</span><strong id="portfolioScenario">--</strong></div>
+          <div><span>預估資產變化</span><strong id="scenarioMoney">--</strong></div>
         </div>
-        <button id="saveCash" class="primary full">儲存現金</button>
+        <small class="scenario-warning">此為 Beta 線性概算；槓桿 ETF 的每日重置、匯率、債券及跨市場差異，可能使實際結果不同。</small>
       </article>
-
-      <article class="card">
-        <div class="section-head"><h2>質押試算</h2><span>概算</span></div>
-        <div class="info-row"><span>持股可質押額度</span><strong id="pledgeHolding">NT$0</strong></div>
-        <div class="info-row"><span>目前質押借款</span><input id="pledgeDebt" type="number" min="0" step="any"></div>
-        <div class="info-row"><span>剩餘可借額度</span><strong id="pledgeRemaining">NT$0</strong></div>
-        <div class="info-row"><span>概算維持率</span><strong id="maintenanceRatio">--</strong></div>
-        <button id="savePledge" class="primary full">儲存質押借款</button>
+  <article class="card">
+        <div class="section-head"><h2>質押紀錄</h2><span>逐檔管理</span></div>
+        <p class="helper-copy">從目前持股選擇股票，填入實際質押金額與年利率；質押金額不可超過該股票目前市值。還清後可直接刪除該筆紀錄。</p>
+        <div class="pledge-entry-form">
+          <label>股票代號
+            <input id="pledgeSymbol" list="pledgeSymbolOptions" placeholder="例如 00631L、QQQM" autocapitalize="characters" autocomplete="off">
+            <datalist id="pledgeSymbolOptions"></datalist>
+          </label>
+          <label>質押金額<input id="pledgeAmount" type="number" min="0" step="any" inputmode="decimal" placeholder="例如 700000"></label>
+          <label>年利率 %<input id="pledgeRate" type="number" min="0" step="0.01" inputmode="decimal" placeholder="例如 3"></label>
+        </div>
+        <button id="addPledge" class="primary full">新增／更新質押紀錄</button>
+        <div class="pledge-list-title">目前質押清單</div>
+        <div id="pledgeHoldingList" class="pledge-holding-list"></div>
+        <div class="pledge-summary-row"><span>質押借款合計</span><strong id="pledgeDebtTotal">NT$0</strong></div>
+        <div class="pledge-summary-row"><span>估計年利息</span><strong id="pledgeInterestTotal">NT$0</strong></div>
       </article>
-    </section>
+  <article class="panel glass-panel stress-card">
+    <div class="section-head"><div><p class="eyebrow">RISK LAB</p><h2>質押壓力測試</h2></div></div>
+    <div class="form-grid two">
+      <label>股市下跌幅度<input id="stressDrop" type="range" min="0" max="60" value="20" step="1"></label>
+      <div class="stress-number"><strong id="stressDropText">-20%</strong><small>模擬整體質押資產同步下跌</small></div>
+    </div>
+    <div class="stress-grid">
+      <div><span>壓力後維持率</span><strong id="stressMaintenance">--</strong></div>
+      <div><span>安全緩衝</span><strong id="stressBuffer">--</strong></div>
+    </div>
+  </article>
+</section>
 
-    <section id="history" class="tab-panel">
+<section id="expenses" class="tab-panel">
+  <div class="section-head page-title-head">
+    <div><p class="eyebrow">MONTHLY COMMITMENTS</p><h2>每月固定支出</h2></div>
+  </div>
+
+  <section class="expense-summary-grid">
+    <article class="expense-summary-card primary-summary">
+      <span>本月實際負擔</span>
+      <strong id="expenseMonthlyTotal">NT$0</strong>
+      <small>依你的負擔比例計算</small>
+    </article>
+    <article class="expense-summary-card">
+      <span>合約總月付</span>
+      <strong id="expenseFullTotal">NT$0</strong>
+      <small>尚未乘上負擔比例</small>
+    </article>
+    <article class="expense-summary-card">
+      <span>進行中合約</span>
+      <strong id="expenseActiveCount">0 筆</strong>
+      <small id="expenseStatusText">尚未新增資料</small>
+    </article>
+  </section>
+
+  <article class="card expense-form-card">
+    <div class="section-head"><h2 id="expenseFormTitle">新增固定支出</h2><span>貸款／分期合約</span></div>
+    <input id="expenseEditId" type="hidden">
+    <div class="expense-name-row">
+      <label>繳款名稱
+        <input id="expenseName" placeholder="例如 自住房貸、信貸、車貸" autocomplete="off">
+      </label>
+    </div>
+    <div class="expense-input-grid">
+      <label>合約開始日
+        <input id="expenseStartDate" type="date">
+      </label>
+      <label>貸款／合約總額（TWD）
+        <input id="expensePrincipal" type="number" min="0" step="1" inputmode="decimal" placeholder="例如 19000000">
+      </label>
+      <label>合約總期數（月）
+        <input id="expenseTermMonths" type="number" min="1" step="1" inputmode="numeric" placeholder="例如 360">
+      </label>
+      <label>寬限期（月）
+        <input id="expenseGraceMonths" type="number" min="0" step="1" inputmode="numeric" value="0">
+      </label>
+      <label>年利率（%）
+        <input id="expenseRate" type="number" min="0" step="0.001" inputmode="decimal" placeholder="例如 2.3">
+      </label>
+      <label>我的負擔比例（%）
+        <input id="expenseShare" type="number" min="0" max="100" step="0.1" inputmode="decimal" value="100">
+      </label>
+    </div>
+    <div class="expense-calculation-note">
+      寬限期間以「只繳利息」計算；寬限期結束後，以剩餘月數進行本息平均攤還。你的每月支出＝合約月付 × 負擔比例。
+    </div>
+    <div class="expense-preview" id="expensePreview">
+      <span>預估目前月付</span><strong>請填入合約資料</strong>
+    </div>
+    <div class="expense-form-actions">
+      <button id="saveExpense" class="primary full" type="button">新增固定支出</button>
+      <button id="cancelExpenseEdit" class="secondary full" type="button" hidden>取消修改</button>
+    </div>
+  </article>
+
+  <article class="card expense-list-card">
+    <div class="section-head"><h2>固定支出清單</h2><button id="clearExpenses" class="text-button danger-text" type="button">全部清除</button></div>
+    <div id="expenseList" class="expense-list"></div>
+  </article>
+</section>
+
+<section id="history" class="tab-panel">
       <article class="card">
         <div class="section-head"><h2>資產歷史</h2><button id="saveSnapshot" class="secondary compact">記錄今天</button></div>
+        <div class="history-toolbar"><label for="historyMonthFilter">顯示月份</label><select id="historyMonthFilter"><option value="all">全部紀錄</option></select></div>
         <canvas id="historyChart" width="720" height="360"></canvas>
         <div id="historyList" class="history-list"></div>
       </article>
@@ -154,18 +334,36 @@
 
     <section id="settings" class="tab-panel">
       <article class="card">
-        <div class="section-head"><h2>資料來源設定</h2><span>只存在本機</span></div>
-        <label>Cloudflare Worker 網址<input id="workerUrl"></label>
+        <div class="section-head"><h2>設定</h2><span>AlphaPilot V8</span></div>
+        <div class="architecture-status">
+          <div class="status-orb">☁️</div>
+          <div>
+            <strong>Cloudflare 前後端已整合</strong>
+            <p>台股、匯率與 Beta 會由目前網站自動處理，不需再填 Worker 網址。</p>
+          </div>
+        </div>
         <label>Finnhub API Key（美股）<input id="finnhubKey" type="password" placeholder="免費 API Key"></label>
-        <label>USD/TWD 匯率<input id="fxRate" type="number" min="0" step="0.0001"></label>
+        <label>USD/TWD 備用匯率<input id="fxRate" type="number" min="0" step="0.0001"></label>
+        <label>目標 Portfolio Beta<input id="targetBeta" type="number" min="0.1" max="3" step="0.05" inputmode="decimal" value="1.20"></label>
         <button id="saveSettings" class="primary full">儲存設定</button>
-        <button id="testWorker" class="secondary full">測試 Worker</button>
+        <button id="testWorker" class="secondary full">測試系統連線</button>
         <div id="settingsStatus" class="status"></div>
+      </article>
+
+      <article class="card backup-card">
+        <div class="section-head"><div><p class="eyebrow">LOCAL BACKUP</p><h2>手機檔案備份</h2></div><span>JSON</span></div>
+        <p class="helper-copy">可將持股、現金、質押、固定支出、設定及歷史紀錄存到手機「檔案」App；需要時選取記錄檔匯入。</p>
+        <div class="backup-actions">
+          <button id="exportBackup" class="primary">匯出完整備份</button>
+          <button id="chooseBackup" class="secondary">匯入記錄檔</button>
+        </div>
+        <input id="importBackupFile" type="file" accept=".json,application/json" hidden aria-hidden="true" tabindex="-1">
+        <div id="backupStatus" class="status"></div>
       </article>
     </section>
 
     <div id="toast" class="toast"></div>
   </main>
-  <script src="app.js?v=3.4.0"></script>
+  <script src="app.js?v=12.1.0"></script>
 </body>
 </html>
