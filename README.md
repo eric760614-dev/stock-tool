@@ -1,4 +1,4 @@
-# AlphaPilot V12.1.0
+# AlphaPilot V12.1.2
 
 ## 本次新增
 
@@ -16,3 +16,10 @@
 npm install
 npx wrangler deploy
 ```
+
+
+## V12.1.2
+- 修正聰明再平衡「目前資產」與首頁總資產不一致：再平衡改以持股 + 現金作為總資產基準。
+- 同性質群組目標比例現在真正以「總資產」為分母。
+- 再平衡 Portfolio Beta 會採用手動 Beta。
+- 若仍有持股缺少 Beta，顯示 Beta 覆蓋率與缺少代號，不再默默把未知 Beta 當 0。

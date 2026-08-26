@@ -430,7 +430,20 @@ window.refreshHolding=async i=>{
     h.stalePrice=true;
     errors.push(n(h.price)>0?"報價暫時無法更新，沿用舊價格":`報價：${e.message}`);
   }
-  if(!h.betaManual){
+  // Beta 更新策略：
+  // 1) 自動 Beta：照常更新。
+  // 2) 手動 Beta：背景嘗試回測；只有真的取得足夠歷史資料（historical + >=30 筆週報酬）才自動取代。
+  //    若仍資料不足、只有模型值或 API 失敗，繼續保留使用者手動 Beta。
+  if(h.betaManual){
+    try{
+      const autoBeta=await fetchBeta(h.symbol,h.market);
+      if(autoBeta.betaSource==="historical"&&n(autoBeta.betaObservations)>=30){
+        Object.assign(h,autoBeta,{betaManual:false});
+      }
+    }catch(e){
+      // 手動 Beta 是有效備援；歷史資料尚不足時不顯示錯誤，也不覆蓋。
+    }
+  }else{
     try{Object.assign(h,await fetchBeta(h.symbol,h.market));}catch(e){errors.push(`Beta：${e.message}`)}
   }
   h.error=errors.join("｜");save();render();
@@ -894,7 +907,7 @@ $("menuOverlay").onclick=closeMenu;
 document.querySelectorAll(".side-menu-nav button").forEach(b=>b.onclick=()=>switchPage(b.dataset.tab));
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeMenu()});
 
-switchPage("dashboard");if("serviceWorker"in navigator)navigator.serviceWorker.register("./sw.js?v=12.1.0").catch(()=>{});
+switchPage("dashboard");if("serviceWorker"in navigator)navigator.serviceWorker.register("./sw.js?v=12.1.2").catch(()=>{});
 
 
 function getCurrentHoldingValues(){
@@ -1026,7 +1039,11 @@ function calculateRebalance(){
   if(duplicateSymbols.length){box.innerHTML=`<div class="result-row warning-row"><small>${[...new Set(duplicateSymbols)].join("、")} 同時存在多個群組，請重新選擇。</small></div>`;return;}
 
   state.targetWeights=weights;save();
-  const currentTotal=values.reduce((a,b)=>a+b.value,0);
+  // 聰明再平衡的比例基準必須與首頁「總資產」一致：持股 + 現金。
+  // 這樣「00662 + QQQM = 總資產 20%」才不會因現金被排除而得到不同數字。
+  const portfolioTotals=totals();
+  const currentTotal=portfolioTotals.total;
+  const availableCash=portfolioTotals.cash;
   const targetTotal=currentTotal+capital;
   const bySymbol=new Map(values.map(v=>[v.symbol,v]));
   const units=[];
@@ -1054,10 +1071,30 @@ function calculateRebalance(){
 
   const rows=values.map(x=>{const diff=symbolDiff.get(x.symbol)||0;let action="維持";if(diff>1)action="買入";else if(diff<-1)action="賣出";return {...x,targetValue:x.value+diff,currentPct:currentTotal>0?x.value/currentTotal*100:0,targetPct:targetTotal>0?(x.value+diff)/targetTotal*100:0,diff,action,isExit:x.value+diff<=1&&x.value>0};});
   const buyTotal=rows.filter(x=>x.diff>1).reduce((s,x)=>s+x.diff,0),sellTotal=rows.filter(x=>x.diff<-1).reduce((s,x)=>s+Math.abs(x.diff),0),net=buyTotal-sellTotal;
-  const projectedBetaValue=rows.reduce((s,x)=>{const h=state.holdings[x.index];return s+(validBeta(h)?Math.max(0,x.targetValue)*n(h.beta):0)},0);
-  const projectedBeta=targetTotal>0?projectedBetaValue/targetTotal:0,betaGap=projectedBeta-targetBeta();
-  const summary=`<div class="rebalance-summary"><div><span>目前資產</span><strong>${money(currentTotal)}</strong></div><div><span>新增資金</span><strong>${money(capital)}</strong></div><div><span>再平衡後</span><strong>${money(targetTotal)}</strong></div></div>
-  <div class="rebalance-beta-result"><span>調整後 Portfolio Beta</span><strong>${fmt(projectedBeta,2)}</strong><small>目標 ${fmt(targetBeta(),2)}｜${Math.abs(betaGap)<=0.03?"已接近目標":`仍相差 ${betaGap>=0?"+":""}${fmt(betaGap,2)}`}</small></div>
+  // Beta 直接使用 holding.beta；若該持股是手動 Beta，這裡會用使用者輸入值。
+  // 未知 Beta 不再默默當成 0，以免低估再平衡後風險。
+  let projectedBetaValue=0,projectedBetaKnownValue=0;
+  const missingBetaSymbols=[];
+  rows.forEach(x=>{
+    const h=state.holdings[x.index];
+    const targetValue=Math.max(0,x.targetValue);
+    if(targetValue<=1)return;
+    if(validBeta(h)){
+      projectedBetaValue+=targetValue*n(h.beta);
+      projectedBetaKnownValue+=targetValue;
+    }else missingBetaSymbols.push(x.symbol);
+  });
+  const projectedBetaCoverage=targetTotal>0?projectedBetaKnownValue/targetTotal*100:0;
+  const projectedBeta=targetTotal>0?projectedBetaValue/targetTotal:null;
+  const betaGap=projectedBeta===null?null:projectedBeta-targetBeta();
+  const betaComplete=missingBetaSymbols.length===0;
+  const manualBetaSymbols=rows.filter(x=>{const h=state.holdings[x.index];return Math.max(0,x.targetValue)>1&&h?.betaManual&&validBeta(h)}).map(x=>x.symbol);
+  const betaStatus=projectedBeta===null?"尚無可用 Beta":betaComplete
+    ?`目標 ${fmt(targetBeta(),2)}｜${Math.abs(betaGap)<=0.03?"已接近目標":`仍相差 ${betaGap>=0?"+":""}${fmt(betaGap,2)}`}`
+    :`Beta 覆蓋 ${fmt(projectedBetaCoverage,1)}%｜缺少 ${missingBetaSymbols.join("、")}，建議手動輸入後再判斷風險`;
+  const betaSourceNote=manualBetaSymbols.length?`｜已採用手動 Beta：${manualBetaSymbols.join("、")}`:"";
+  const summary=`<div class="rebalance-summary"><div><span>目前資產</span><strong>${money(currentTotal)}</strong><small>與首頁總資產一致，含現金 ${money(availableCash)}</small></div><div><span>新增資金</span><strong>${money(capital)}</strong></div><div><span>再平衡後</span><strong>${money(targetTotal)}</strong></div></div>
+  <div class="rebalance-beta-result"><span>調整後 Portfolio Beta</span><strong>${projectedBeta===null?"--":fmt(projectedBeta,2)}</strong><small>${betaStatus}${betaSourceNote}</small></div>
   ${groupNotes.length?`<div class="smart-group-results"><div class="smart-group-title"><strong>同性質群組建議</strong><small>群組內標的可互相替代；推薦順序優先降低換匯。</small></div>${groupNotes.join("")}</div>`:""}
   <div class="rebalance-flow"><span>預計賣出 <strong>${money(sellTotal)}</strong></span><span>預計買入 <strong>${money(buyTotal)}</strong></span><span>淨投入 <strong>${money(net)}</strong></span></div>`;
 
@@ -1157,7 +1194,7 @@ function exportBackup(){
     const a=document.createElement("a");
     const d=new Date();
     const stamp=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-    a.href=url;a.download=`AlphaPilot-V12.1.0-backup-${stamp}.json`;
+    a.href=url;a.download=`AlphaPilot-V12.1.2-backup-${stamp}.json`;
     document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
     if(status)status.textContent=`備份完成：${backup.summary.holdings} 檔持股、台幣現金 ${money(backup.summary.cashTwd)}。`;
   }catch(error){if(status)status.textContent=`匯出失敗：${error.message}`;}
@@ -1263,7 +1300,7 @@ function installPageMotionHooks(){
 document.addEventListener("DOMContentLoaded",()=>{installRefreshMotion();installPageMotionHooks();});
 
 
-// AlphaPilot V12.1.0 — installable PWA shell
+// AlphaPilot V12.1.2 — auto-upgrade manual Beta when historical data becomes sufficient
 (() => {
   let deferredInstallPrompt = null;
   let waitingWorker = null;

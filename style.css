@@ -1714,7 +1714,7 @@ body.light-mode #expenses .expense-item {
 @media (display-mode:standalone){.pwa-install-card{display:none!important}body{overscroll-behavior-y:none}.app{padding-top:max(12px,env(safe-area-inset-top))}}
 @media (prefers-reduced-motion:reduce){.pwa-splash::before,.pwa-splash-orbit{animation:none}.pwa-install-card,.pwa-update-card{animation:none}}
 
-/* V12.1.0 — equivalent-asset groups + manual beta */
+/* V12.1.1 — equivalent-asset groups + total-asset rebalance + manual beta */
 .beta-source-pill{display:inline-flex;align-items:center;margin-left:6px;padding:2px 7px;border-radius:999px;font-size:10px;font-weight:800;vertical-align:1px}
 .beta-source-pill.auto{background:rgba(98,227,192,.12);color:#65e6c4;border:1px solid rgba(98,227,192,.25)}
 .beta-source-pill.manual{background:rgba(255,210,31,.12);color:#ffd85c;border:1px solid rgba(255,210,31,.28)}
