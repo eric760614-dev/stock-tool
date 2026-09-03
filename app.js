@@ -908,7 +908,7 @@ $("menuOverlay").onclick=closeMenu;
 document.querySelectorAll(".side-menu-nav button").forEach(b=>b.onclick=()=>switchPage(b.dataset.tab));
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeMenu()});
 
-switchPage("dashboard");if("serviceWorker"in navigator)navigator.serviceWorker.register("./sw.js?v=12.3.0").catch(()=>{});
+switchPage("dashboard");if("serviceWorker"in navigator)navigator.serviceWorker.register("./sw.js?v=12.3.1").catch(()=>{});
 
 
 function getCurrentHoldingValues(){
@@ -1195,7 +1195,7 @@ function exportBackup(){
     const a=document.createElement("a");
     const d=new Date();
     const stamp=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-    a.href=url;a.download=`AlphaPilot-V12.3.0-backup-${stamp}.json`;
+    a.href=url;a.download=`AlphaPilot-V12.3.1-backup-${stamp}.json`;
     document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
     if(status)status.textContent=`備份完成：${backup.summary.holdings} 檔持股、台幣現金 ${money(backup.summary.cashTwd)}。`;
   }catch(error){if(status)status.textContent=`匯出失敗：${error.message}`;}
@@ -1301,7 +1301,7 @@ function installPageMotionHooks(){
 document.addEventListener("DOMContentLoaded",()=>{installRefreshMotion();installPageMotionHooks();});
 
 
-// AlphaPilot V12.3.0 — auto-upgrade manual Beta when historical data becomes sufficient
+// AlphaPilot V12.3.1 — auto-upgrade manual Beta when historical data becomes sufficient
 (() => {
   let deferredInstallPrompt = null;
   let waitingWorker = null;
