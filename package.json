@@ -1,6 +1,6 @@
 {
   "name": "alphapilot-v12-pwa",
-  "version": "12.1.4",
+  "version": "12.3.4",
   "private": true,
   "scripts": {
     "deploy": "wrangler deploy"
