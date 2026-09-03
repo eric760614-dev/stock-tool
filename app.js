@@ -860,14 +860,14 @@ window.editFixedExpense=editFixedExpense;
 window.deleteFixedExpense=deleteFixedExpense;
 
 const PAGE_META={
-  dashboard:{label:"首頁",icon:"🏠"},
-  portfolio:{label:"持股",icon:"📈"},
-  allocation:{label:"資產配置",icon:"🥧"},
-  rebalance:{label:"聰明再平衡",icon:"🧠"},
-  risk:{label:"風險模擬",icon:"🛡️"},
-  history:{label:"資產歷史",icon:"🕘"},
-  expenses:{label:"固定支出",icon:"🧾"},
-  settings:{label:"設定",icon:"⚙️"}
+  dashboard:{label:"首頁",icon:"nav-dashboard.png"},
+  portfolio:{label:"持股",icon:"nav-portfolio.png"},
+  allocation:{label:"資產配置",icon:"nav-allocation.png"},
+  rebalance:{label:"聰明再平衡",icon:"nav-rebalance.png"},
+  risk:{label:"風險模擬",icon:"nav-risk.png"},
+  history:{label:"資產歷史",icon:"nav-history.png"},
+  expenses:{label:"固定支出",icon:"nav-expenses.png"},
+  settings:{label:"設定",icon:"nav-settings.png"}
 };
 
 function openMenu(){
@@ -894,7 +894,8 @@ function switchPage(tab){
   document.body.dataset.activeTab=selected;
   $("currentPageTitle").textContent=meta.label;
   $("currentPageLabel").textContent=meta.label;
-  $("currentPageIcon").textContent=meta.icon;
+  $("currentPageIcon").src=meta.icon;
+  $("pageHeader").hidden=selected==="dashboard";
   closeMenu();
   window.scrollTo({top:0,behavior:"smooth"});
   render();
@@ -907,7 +908,7 @@ $("menuOverlay").onclick=closeMenu;
 document.querySelectorAll(".side-menu-nav button").forEach(b=>b.onclick=()=>switchPage(b.dataset.tab));
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeMenu()});
 
-switchPage("dashboard");if("serviceWorker"in navigator)navigator.serviceWorker.register("./sw.js?v=12.2.0").catch(()=>{});
+switchPage("dashboard");if("serviceWorker"in navigator)navigator.serviceWorker.register("./sw.js?v=12.3.0").catch(()=>{});
 
 
 function getCurrentHoldingValues(){
@@ -1194,7 +1195,7 @@ function exportBackup(){
     const a=document.createElement("a");
     const d=new Date();
     const stamp=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-    a.href=url;a.download=`AlphaPilot-V12.2.0-backup-${stamp}.json`;
+    a.href=url;a.download=`AlphaPilot-V12.3.0-backup-${stamp}.json`;
     document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
     if(status)status.textContent=`備份完成：${backup.summary.holdings} 檔持股、台幣現金 ${money(backup.summary.cashTwd)}。`;
   }catch(error){if(status)status.textContent=`匯出失敗：${error.message}`;}
@@ -1300,7 +1301,7 @@ function installPageMotionHooks(){
 document.addEventListener("DOMContentLoaded",()=>{installRefreshMotion();installPageMotionHooks();});
 
 
-// AlphaPilot V12.2.0 — auto-upgrade manual Beta when historical data becomes sufficient
+// AlphaPilot V12.3.0 — auto-upgrade manual Beta when historical data becomes sufficient
 (() => {
   let deferredInstallPrompt = null;
   let waitingWorker = null;

@@ -16,8 +16,8 @@
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
   <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
-  <link rel="stylesheet" href="style.css?v=12.2.0">
-  <title>AlphaPilot V12.2.0</title>
+  <link rel="stylesheet" href="style.css?v=12.3.0">
+  <title>AlphaPilot V12.3.0</title>
 </head>
 <body>
   <div id="pwaSplash" class="pwa-splash" aria-hidden="true">
@@ -39,7 +39,7 @@
       <div>
         <div class="brand-lockup">
           <img src="alphapilot-brand.png" class="brand-icon brand-art" alt="AlphaPilot">
-          <div><p class="eyebrow">ERIC'S PORTFOLIO</p><h1>AlphaPilot <em>V12.2.0</em></h1></div>
+          <div><p class="eyebrow">ERIC'S PORTFOLIO</p><h1>AlphaPilot <em>V12.3.0</em></h1></div>
         </div>
       </div>
       <div class="hero-actions">
@@ -78,40 +78,39 @@
 
       <nav class="side-menu-nav">
         <button data-tab="dashboard" class="active">
-          <span class="menu-icon">⌂</span><span>首頁</span>
+          <span class="menu-icon"><img src="nav-dashboard.png" alt=""></span><span>首頁</span>
         </button>
         <button data-tab="portfolio">
-          <span class="menu-icon">⌁</span><span>持股</span>
+          <span class="menu-icon"><img src="nav-portfolio.png" alt=""></span><span>持股</span>
         </button>
         <button data-tab="allocation">
-          <span class="menu-icon">◔</span><span>資產配置</span>
+          <span class="menu-icon"><img src="nav-allocation.png" alt=""></span><span>資產配置</span>
         </button>
         <button data-tab="rebalance">
-          <span class="menu-icon">◇</span><span>聰明再平衡</span>
+          <span class="menu-icon"><img src="nav-rebalance.png" alt=""></span><span>聰明再平衡</span>
         </button>
         <button data-tab="risk">
-          <span class="menu-icon">⬡</span><span>風險模擬</span>
+          <span class="menu-icon"><img src="nav-risk.png" alt=""></span><span>風險模擬</span>
         </button>
         <button data-tab="history">
-          <span class="menu-icon">◷</span><span>資產歷史</span>
+          <span class="menu-icon"><img src="nav-history.png" alt=""></span><span>資產歷史</span>
         </button>
         <button data-tab="expenses">
-          <span class="menu-icon">▤</span><span>固定支出</span>
+          <span class="menu-icon"><img src="nav-expenses.png" alt=""></span><span>固定支出</span>
         </button>
         <button data-tab="settings">
-          <span class="menu-icon">⚙</span><span>設定</span>
+          <span class="menu-icon"><img src="nav-settings.png" alt=""></span><span>設定</span>
         </button>
       </nav>
 
       <div class="side-menu-foot">選擇功能後會自動切換頁面</div>
     </aside>
 
-    <div class="page-indicator">
-      <span id="currentPageIcon">🏠</span>
-      <strong id="currentPageLabel">首頁</strong>
-    </div>
-
-    <section id="portfolio" class="tab-panel">
+    <div id="pageHeader" class="new-page-header" hidden>
+  <img id="currentPageIcon" src="nav-dashboard.png" alt="">
+  <strong id="currentPageLabel">首頁</strong>
+</div>
+<section id="portfolio" class="tab-panel">
       <article class="card">
         <div class="section-head"><h2>新增持股</h2><span>台股與美股</span></div>
         <div class="form-grid two">
@@ -193,7 +192,7 @@
 
     
 <section id="rebalance" class="tab-panel">
-  <div class="section-head visual-section-head"><div><p class="eyebrow">SMART REBALANCE</p><h2>聰明再平衡</h2></div><img src="alphapilot-rebalance.png" class="section-art" alt=""></div>
+  <div class="section-head visual-section-head page-feature-title"><img src="nav-rebalance.png" class="section-art" alt=""><div><p class="eyebrow">SMART REBALANCE</p><h2>聰明再平衡</h2></div></div>
   <article class="panel glass-panel">
     <p class="helper-copy">可把同性質標的合併成一個配置群組，例如「00662 + QQQM = 20%」。群組內不強迫固定比例，系統會依目前部位與可用幣別推薦要增加哪一檔，並優先同市場互轉以減少換匯。未加入群組的股票仍可單獨設定比例。</p>
     <div class="group-config-head"><div><strong>同性質資產群組</strong><small>自訂哪些股票可以互相替代</small></div><button id="addAllocationGroup" class="secondary compact" type="button">＋ 新增群組</button></div>
@@ -325,7 +324,7 @@
 
 <section id="history" class="tab-panel">
       <article class="card">
-        <div class="section-head visual-section-head"><div class="title-with-art"><img src="alphapilot-history.png" class="section-art" alt=""><h2>資產歷史</h2></div><button id="saveSnapshot" class="secondary compact">記錄今天</button></div>
+        <div class="section-head visual-section-head"><div class="title-with-art"><img src="nav-history.png" class="section-art" alt=""><h2>資產歷史</h2></div><button id="saveSnapshot" class="secondary compact">記錄今天</button></div>
         <div class="history-toolbar"><label for="historyMonthFilter">顯示月份</label><select id="historyMonthFilter"><option value="all">全部紀錄</option></select></div>
         <canvas id="historyChart" width="720" height="360"></canvas>
         <div id="historyList" class="history-list"></div>
@@ -334,7 +333,7 @@
 
     <section id="settings" class="tab-panel">
       <article class="card">
-        <div class="section-head visual-section-head"><div class="title-with-art"><img src="alphapilot-settings.png" class="section-art" alt=""><h2>設定</h2></div><span>AlphaPilot V12.2.0</span></div>
+        <div class="section-head visual-section-head"><div class="title-with-art"><img src="nav-settings.png" class="section-art" alt=""><h2>設定</h2></div><span>AlphaPilot V12.3.0</span></div>
         <div class="architecture-status">
           <div class="status-orb">☁️</div>
           <div>
@@ -351,7 +350,7 @@
       </article>
 
       <article class="card backup-card">
-        <div class="section-head visual-section-head"><div class="title-with-art"><img src="alphapilot-backup.png" class="section-art" alt=""><div><p class="eyebrow">LOCAL BACKUP</p><h2>手機檔案備份</h2></div></div><span>JSON</span></div>
+        <div class="section-head visual-section-head"><div class="title-with-art"><img src="nav-backup.png" class="section-art" alt=""><div><p class="eyebrow">LOCAL BACKUP</p><h2>手機檔案備份</h2></div></div><span>JSON</span></div>
         <p class="helper-copy">可將持股、現金、質押、固定支出、設定及歷史紀錄存到手機「檔案」App；需要時選取記錄檔匯入。</p>
         <div class="backup-actions">
           <button id="exportBackup" class="primary">匯出完整備份</button>
@@ -364,6 +363,6 @@
 
     <div id="toast" class="toast"></div>
   </main>
-  <script src="app.js?v=12.2.0"></script>
+  <script src="app.js?v=12.3.0"></script>
 </body>
 </html>
