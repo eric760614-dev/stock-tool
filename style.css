@@ -1739,3 +1739,15 @@ body.light-mode #expenses .expense-item {
 .smart-group-result>div{display:flex;flex-direction:column;gap:3px}.smart-group-result>div:last-child{text-align:right}.smart-group-result span,.smart-group-result small{color:var(--muted);font-size:10px;line-height:1.45}.smart-group-result.buy-action>div:last-child>strong{color:#65e6c4}.smart-group-result.sell-action>div:last-child>strong{color:#ff899e}
 body.light-mode .allocation-group-card{background:linear-gradient(145deg,#eef4ff,#f8faff);border-color:#d8e4fb}body.light-mode .group-member-chip{background:#fff}body.light-mode .group-member-chip.selected{background:#e9f0ff}body.light-mode .smart-group-result{background:#f5f8fd}
 @media(max-width:560px){.allocation-group-head{grid-template-columns:minmax(0,1fr) 92px 36px}.group-config-head{align-items:flex-start}.smart-group-title{align-items:flex-start;flex-direction:column}.smart-group-title small{text-align:left}.smart-group-result{grid-template-columns:1fr}.smart-group-result>div:last-child{text-align:left}}
+
+
+/* V12.2.0 — AlphaPilot 專屬金融插圖 */
+.brand-art{width:54px!important;height:54px!important;object-fit:cover;border-radius:15px;box-shadow:0 0 24px rgba(47,100,233,.32)}
+.visual-summary{position:relative;overflow:hidden;isolation:isolate}
+.visual-summary>*:not(.summary-art){position:relative;z-index:2}
+.summary-art{position:absolute;right:-4px;top:50%;width:148px;height:110px;object-fit:cover;transform:translateY(-50%);opacity:.34;mix-blend-mode:screen;pointer-events:none;z-index:1;mask-image:linear-gradient(90deg,transparent 0,#000 30%);-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 30%)}
+.visual-section-head{min-height:58px}
+.title-with-art{display:flex;align-items:center;gap:10px;min-width:0}
+.section-art{width:58px;height:44px;object-fit:cover;border-radius:12px;flex:0 0 auto;box-shadow:0 8px 24px rgba(0,0,0,.22);border:1px solid rgba(96,165,250,.14)}
+.visual-section-head>img.section-art{margin-left:auto;margin-right:4px}
+@media(max-width:520px){.brand-art{width:48px!important;height:48px!important}.summary-art{width:128px;height:96px;opacity:.30}.section-art{width:52px;height:40px}.visual-section-head{gap:8px}}
