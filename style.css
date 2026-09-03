@@ -1752,7 +1752,7 @@ body.light-mode .allocation-group-card{background:linear-gradient(145deg,#eef4ff
 .visual-section-head>img.section-art{margin-left:auto;margin-right:4px}
 @media(max-width:520px){.brand-art{width:48px!important;height:48px!important}.summary-art{width:128px;height:96px;opacity:.30}.section-art{width:52px;height:40px}.visual-section-head{gap:8px}}
 
-/* AlphaPilot V12.3.2 — unified page/navigation icon system */
+/* AlphaPilot V12.3.3 — unified page/navigation icon system */
 .page-indicator{display:none!important}
 .new-page-header{display:flex;align-items:center;gap:12px;margin:0 0 14px;padding:0;background:transparent;border:0;box-shadow:none}
 .new-page-header[hidden]{display:none!important}
@@ -1765,9 +1765,16 @@ body.light-mode .allocation-group-card{background:linear-gradient(145deg,#eef4ff
 #rebalance>.page-feature-title{margin-top:0;margin-bottom:14px}
 @media(max-width:520px){.new-page-header{margin-top:0;margin-bottom:12px}.new-page-header img{width:44px;height:44px;border-radius:12px}.new-page-header strong{font-size:1.08rem}}
 
-/* V12.3.2 — remove duplicate page titles */
+/* V12.3.3 — remove duplicate page titles */
 #rebalance > .page-feature-title,
 #history > .card:first-child,
 #settings > .card:first-child {
   margin-top: 0;
 }
+
+/* V12.3.3 — one title per page */
+.history-actions-only{justify-content:flex-end!important;margin-bottom:12px}
+.settings-version-only{justify-content:flex-end!important;margin-bottom:12px}
+#rebalance > .card:first-of-type{margin-top:0}
+#history > .card:first-of-type,
+#settings > .card:first-of-type{margin-top:0}
