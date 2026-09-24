@@ -2,10 +2,11 @@
 const $=id=>document.getElementById(id);
 const KEY="stockDashboardV3";
 const THEME_KEY="alphaPilotTheme";
-const DEFAULT={holdings:[],pledges:[],cashPositions:[],cashTwd:0,cashUsd:0,fxRate:32.5,fxRates:{TWD:1,USD:32.5},finnhubKey:"",history:[],targetWeights:{},allocationGroups:[],targetBeta:1.20,fixedExpenses:[]};
+const DEFAULT={holdings:[],pledges:[],cashPositions:[],cashTwd:0,cashUsd:0,fxRate:32.5,fxRates:{TWD:1,USD:32.5},finnhubKey:"",history:[],targetWeights:{},allocationGroups:[],targetCashWeight:0,targetBeta:1.20,fixedExpenses:[]};
 let state=(()=>{try{return {...DEFAULT,...JSON.parse(localStorage.getItem(KEY)||"{}")}}catch{return {...DEFAULT}}})();
 state.holdings=(state.holdings||[]).map(h=>({...h,betaManual:Boolean(h.betaManual),stalePrice:Boolean(h.stalePrice)}));
 state.allocationGroups=Array.isArray(state.allocationGroups)?state.allocationGroups:[];
+state.targetCashWeight=Math.max(0,Math.min(100,Number(state.targetCashWeight)||0));
 state.allocationGroups=state.allocationGroups.map((g,i)=>({id:String(g.id||`group-${Date.now()}-${i}`),name:String(g.name||`群組 ${i+1}`).trim(),target:Math.max(0,Math.min(100,Number(g.target)||0)),members:[...new Set((Array.isArray(g.members)?g.members:[]).map(x=>String(x||"").toUpperCase()).filter(Boolean))]}));
 state.cashPositions=Array.isArray(state.cashPositions)?state.cashPositions:[];
 if(!state.cashPositions.length){
@@ -108,19 +109,22 @@ function allocationScore(){
   const weights=state.targetWeights||{};
   const groups=(state.allocationGroups||[]).filter(g=>(g.members||[]).length);
   const grouped=new Set(groups.flatMap(g=>g.members));
-  const sumTargets=groups.reduce((s,g)=>s+n(g.target),0)+values.filter(x=>!grouped.has(x.symbol)).reduce((s,x)=>s+n(weights[x.symbol]),0);
+  const cashTarget=Math.max(0,Math.min(100,n(state.targetCashWeight)));
+  const sumTargets=groups.reduce((s,g)=>s+n(g.target),0)+values.filter(x=>!grouped.has(x.symbol)).reduce((s,x)=>s+n(weights[x.symbol]),0)+cashTarget;
   let alloc=20;
-  if(investTotal>0&&Math.abs(sumTargets-100)<0.05){
+  if(t.total>0&&Math.abs(sumTargets-100)<0.05){
     let distance=0;
-    groups.forEach(g=>{const current=values.filter(x=>g.members.includes(x.symbol)).reduce((s,x)=>s+x.value,0)/investTotal*100;distance+=Math.abs(current-n(g.target));});
-    values.filter(x=>!grouped.has(x.symbol)).forEach(x=>{distance+=Math.abs(x.value/investTotal*100-n(weights[x.symbol]));});
+    groups.forEach(g=>{const current=values.filter(x=>g.members.includes(x.symbol)).reduce((s,x)=>s+x.value,0)/t.total*100;distance+=Math.abs(current-n(g.target));});
+    values.filter(x=>!grouped.has(x.symbol)).forEach(x=>{distance+=Math.abs(x.value/t.total*100-n(weights[x.symbol]));});
+    distance+=Math.abs(t.cash/t.total*100-cashTarget);
     alloc=Math.max(0,40-distance*0.8);
   }
   const beta=t.portfolioBeta===null?0:Math.max(0,30-Math.abs(t.portfolioBeta-targetBeta())*75);
   const maxWeight=values.length&&t.total>0?Math.max(...values.map(x=>x.value/t.total)):0;
   const concentration=Math.max(0,20-Math.max(0,maxWeight-0.35)*60);
   const cashRatio=t.cash/t.total;
-  const cash=Math.max(0,10-Math.abs(cashRatio-0.15)*35);
+  const cashTargetRatio=Math.max(0,Math.min(100,n(state.targetCashWeight)))/100;
+  const cash=Math.max(0,10-Math.abs(cashRatio-cashTargetRatio)*35);
   const score=Math.round(Math.max(0,Math.min(100,alloc+beta+concentration+cash)));
   return {score,label:score>=90?"配置健康":score>=75?"大致穩定":"建議重新平衡"};
 }
@@ -908,7 +912,7 @@ $("menuOverlay").onclick=closeMenu;
 document.querySelectorAll(".side-menu-nav button").forEach(b=>b.onclick=()=>switchPage(b.dataset.tab));
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeMenu()});
 
-switchPage("dashboard");if("serviceWorker"in navigator)navigator.serviceWorker.register("./sw.js?v=12.3.4").catch(()=>{});
+switchPage("dashboard");if("serviceWorker"in navigator)navigator.serviceWorker.register("./sw.js?v=12.3.5").catch(()=>{});
 
 
 function getCurrentHoldingValues(){
@@ -996,17 +1000,20 @@ function getTargetWeightMap(){
   document.querySelectorAll(".target-weight-input").forEach(input=>{result[input.dataset.symbol]=Math.max(0,Math.min(100,n(input.value)));});
   return result;
 }
+function targetCashWeight(){return Math.max(0,Math.min(100,n(state.targetCashWeight)));}
 function effectiveTargetTotal(){
   const weights=getTargetWeightMap();
   const individual=Object.values(weights).reduce((a,b)=>a+b,0);
   const groups=(state.allocationGroups||[]).reduce((a,g)=>a+n(g.target),0);
-  return individual+groups;
+  return individual+groups+targetCashWeight();
 }
 function updateTargetWeightTotal(){
   const total=effectiveTargetTotal();
   const el=$("targetWeightTotal");
   if(el){el.textContent=`${fmt(total,1)}%`;el.className=Math.abs(total-100)<0.01?"positive":"negative";}
   const groupTotal=$("groupTargetTotal");if(groupTotal)groupTotal.textContent=`${fmt((state.allocationGroups||[]).reduce((a,g)=>a+n(g.target),0),1)}%`;
+  const cashInput=$("targetCashWeight");if(cashInput&&document.activeElement!==cashInput)cashInput.value=targetCashWeight();
+  const cashCurrent=$("currentCashRatio");if(cashCurrent){const t=totals();cashCurrent.textContent=t.total>0?`${fmt(t.cash/t.total*100,1)}%`:`0.0%`;}
 }
 function marketFundingHints(values,unitPlans,capital){
   const funds={TW:Math.max(0,capital)+state.cashPositions.filter(x=>x.currency==="TWD").reduce((s,x)=>s+cashValueTwd(x),0),US:state.cashPositions.filter(x=>x.currency==="USD").reduce((s,x)=>s+cashValueTwd(x),0)};
@@ -1034,8 +1041,9 @@ function calculateRebalance(){
 
   const groups=(state.allocationGroups||[]).filter(g=>(g.members||[]).length>0&&n(g.target)>=0);
   const grouped=new Set(groups.flatMap(g=>g.members));
-  const sumW=Object.values(weights).reduce((a,b)=>a+n(b),0)+groups.reduce((a,g)=>a+n(g.target),0);
-  if(Math.abs(sumW-100)>0.01){box.innerHTML=`<div class="result-row warning-row"><small>有效目標比例合計為 ${fmt(sumW,1)}%，請將「群組比例＋未分組個別比例」調整為 100%。</small></div>`;return;}
+  const cashTargetPct=targetCashWeight();
+  const sumW=Object.values(weights).reduce((a,b)=>a+n(b),0)+groups.reduce((a,g)=>a+n(g.target),0)+cashTargetPct;
+  if(Math.abs(sumW-100)>0.01){box.innerHTML=`<div class="result-row warning-row"><small>有效目標比例合計為 ${fmt(sumW,1)}%，請將「群組比例＋未分組個別比例＋現金比例」調整為 100%。</small></div>`;return;}
   const duplicateSymbols=[];const seen=new Set();groups.forEach(g=>g.members.forEach(s=>{if(seen.has(s))duplicateSymbols.push(s);seen.add(s)}));
   if(duplicateSymbols.length){box.innerHTML=`<div class="result-row warning-row"><small>${[...new Set(duplicateSymbols)].join("、")} 同時存在多個群組，請重新選擇。</small></div>`;return;}
 
@@ -1046,6 +1054,9 @@ function calculateRebalance(){
   const currentTotal=portfolioTotals.total;
   const availableCash=portfolioTotals.cash;
   const targetTotal=currentTotal+capital;
+  const currentCash=availableCash;
+  const targetCashValue=targetTotal*cashTargetPct/100;
+  const cashDiff=targetCashValue-(currentCash+capital);
   const bySymbol=new Map(values.map(v=>[v.symbol,v]));
   const units=[];
   groups.forEach(g=>{const members=g.members.map(s=>bySymbol.get(s)).filter(Boolean);if(!members.length)return;const value=members.reduce((s,m)=>s+m.value,0),targetPct=n(g.target),targetValue=targetTotal*targetPct/100;units.push({type:"group",id:g.id,name:g.name,targetPct,targetValue,value,diff:targetValue-value,members});});
@@ -1094,6 +1105,9 @@ function calculateRebalance(){
     ?`目標 ${fmt(targetBeta(),2)}｜${Math.abs(betaGap)<=0.03?"已接近目標":`仍相差 ${betaGap>=0?"+":""}${fmt(betaGap,2)}`}`
     :`Beta 覆蓋 ${fmt(projectedBetaCoverage,1)}%｜缺少 ${missingBetaSymbols.join("、")}，建議手動輸入後再判斷風險`;
   const betaSourceNote=manualBetaSymbols.length?`｜已採用手動 Beta：${manualBetaSymbols.join("、")}`:"";
+  const cashCurrentPct=currentTotal>0?currentCash/currentTotal*100:0;
+  const cashAction=Math.abs(cashDiff)<=1?"現金已接近目標":cashDiff>0?`應增加／保留現金 ${money(cashDiff)}`:`可由現金投入 ${money(Math.abs(cashDiff))}`;
+  const cashRow=`<div class="rebalance-row ${cashDiff>1?"buy-action":cashDiff<-1?"sell-action":"hold-action"}"><div class="rebalance-symbol"><strong>現金</strong><small>Beta 0</small></div><div class="rebalance-ratio"><span>${fmt(cashCurrentPct,1)}%</span><b>→</b><strong>${fmt(cashTargetPct,1)}%</strong></div><div class="rebalance-action"><strong>${cashAction}</strong><small>建議後現金 ${money(targetCashValue)}</small></div></div>`;
   const summary=`<div class="rebalance-summary"><div><span>目前資產</span><strong>${money(currentTotal)}</strong></div><div><span>新增資金</span><strong>${money(capital)}</strong></div><div><span>再平衡後</span><strong>${money(targetTotal)}</strong></div></div>
   <div class="rebalance-beta-result"><span>調整後 Portfolio Beta</span><strong>${projectedBeta===null?"--":fmt(projectedBeta,2)}</strong><small>${betaStatus}${betaSourceNote}</small></div>
   ${groupNotes.length?`<div class="smart-group-results"><div class="smart-group-title"><strong>同性質群組建議</strong><small>群組內標的可互相替代；推薦順序優先降低換匯。</small></div>${groupNotes.join("")}</div>`:""}
@@ -1107,7 +1121,7 @@ function calculateRebalance(){
     const shareText=x.isExit?`賣出 ${fmt(x.shares,x.market==="US"?4:0)} 股`:x.action==="維持"?"股數無需調整":x.unitPriceTwd>0?`約 ${x.action} ${fmt(rawShares,shareDigits)} 股｜每股約 ${money(x.unitPriceTwd)}`:"目前價格不足，無法換算股數";
     return `<div class="rebalance-row ${actionClass}"><div class="rebalance-symbol"><strong>${x.symbol}</strong><small>${x.name}</small></div><div class="rebalance-ratio"><span>${fmt(x.currentPct,1)}%</span><b>→</b><strong>${fmt(x.targetPct,1)}%</strong></div><div class="rebalance-action"><strong>${actionText}</strong><span class="share-estimate">${shareText}</span><small>建議後市值 ${money(Math.max(0,x.targetValue))}</small></div></div>`;
   }).join("");
-  box.innerHTML=summary+detail;
+  box.innerHTML=summary+cashRow+detail;
 }
 function renderStress(){
   const drop=n($("stressDrop")?.value);
@@ -1141,6 +1155,7 @@ function applyTheme(theme){
 document.addEventListener("DOMContentLoaded",()=>{
   applyTheme(localStorage.getItem(THEME_KEY)||"dark");
   $("themeToggle")?.addEventListener("click",()=>applyTheme(document.body.classList.contains("light-mode")?"dark":"light"));
+  $("targetCashWeight")?.addEventListener("input",e=>{state.targetCashWeight=Math.max(0,Math.min(100,n(e.target.value)));save();updateTargetWeightTotal();});
   $("calcRebalance")?.addEventListener("click",calculateRebalance);
   $("addAllocationGroup")?.addEventListener("click",addAllocationGroup);
   $("stressDrop")?.addEventListener("input",renderStress);
@@ -1170,6 +1185,7 @@ function cleanBackupState(source){
     })).filter(x=>x.name&&x.startDate&&Number(x.principal)>0&&x.termMonths>0),
     targetWeights:incoming.targetWeights&&typeof incoming.targetWeights==="object"?incoming.targetWeights:{},
     allocationGroups:Array.isArray(incoming.allocationGroups)?incoming.allocationGroups:[],
+    targetCashWeight:Math.max(0,Math.min(100,n(incoming.targetCashWeight))),
     targetBeta:Math.max(0.1,Math.min(3,n(incoming.targetBeta||1.20)))
   };
 }

@@ -1820,3 +1820,5 @@ body.light-mode .allocation-group-card{background:linear-gradient(145deg,#eef4ff
     min-width:116px;
   }
 }
+
+.cash-target-card{display:flex;justify-content:space-between;align-items:center;gap:14px;margin:14px 0;padding:14px;border:1px solid var(--line);border-radius:16px;background:rgba(23,41,69,.55)}.cash-target-card>div:first-child{display:grid;gap:4px}.cash-target-card small{color:var(--muted);font-size:11px}.cash-target-controls{display:flex;align-items:center;gap:14px;color:var(--muted);font-size:12px}.cash-target-controls label{display:flex;align-items:center;gap:8px;margin:0}.cash-target-controls .percent-input{width:112px}.cash-target-controls input{margin:0}@media(max-width:560px){.cash-target-card{align-items:flex-start;flex-direction:column}.cash-target-controls{width:100%;justify-content:space-between}}

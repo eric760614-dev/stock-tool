@@ -16,8 +16,8 @@
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
   <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
-  <link rel="stylesheet" href="style.css?v=12.3.4">
-  <title>AlphaPilot V12.3.4</title>
+  <link rel="stylesheet" href="style.css?v=12.3.5">
+  <title>AlphaPilot V12.3.5</title>
 </head>
 <body>
   <div id="pwaSplash" class="pwa-splash" aria-hidden="true">
@@ -39,7 +39,7 @@
       <div>
         <div class="brand-lockup">
           <img src="alphapilot-brand.png" class="brand-icon brand-art" alt="AlphaPilot">
-          <div><p class="eyebrow">ERIC'S PORTFOLIO</p><h1>AlphaPilot <em>V12.3.4</em></h1></div>
+          <div><p class="eyebrow">ERIC'S PORTFOLIO</p><h1>AlphaPilot <em>V12.3.5</em></h1></div>
         </div>
       </div>
       <div class="hero-actions">
@@ -203,7 +203,11 @@
       <input id="newCapital" type="number" inputmode="decimal" placeholder="可填 0，例如 3000000">
     </label>
     <div id="targetWeightList" class="target-weight-list"></div>
-    <div class="weight-total-row"><span>有效目標比例合計</span><strong id="targetWeightTotal">0%</strong></div>
+    <div class="cash-target-card">
+      <div><strong>💵 現金配置</strong><small>現金視為 Beta 0，並納入總資產再平衡</small></div>
+      <div class="cash-target-controls"><span>目前 <strong id="currentCashRatio">0.0%</strong></span><label>目標 <span class="percent-input"><input id="targetCashWeight" type="number" min="0" max="100" step="0.1" inputmode="decimal" value="0"><span>%</span></span></label></div>
+    </div>
+    <div class="weight-total-row"><span>有效目標比例合計（含現金）</span><strong id="targetWeightTotal">0%</strong></div>
     <button id="calcRebalance" class="primary full">計算完整再平衡</button>
     <div id="rebalanceResult" class="result-stack"></div>
   </article>
@@ -335,7 +339,7 @@
 
     <section id="settings" class="tab-panel">
       <article class="card">
-        <div class="section-head settings-version-only"><span>AlphaPilot V12.3.4</span></div>
+        <div class="section-head settings-version-only"><span>AlphaPilot V12.3.5</span></div>
         <div class="architecture-status">
           <div class="status-orb">☁️</div>
           <div>
@@ -365,6 +369,6 @@
 
     <div id="toast" class="toast"></div>
   </main>
-  <script src="app.js?v=12.3.4"></script>
+  <script src="app.js?v=12.3.5"></script>
 </body>
 </html>
