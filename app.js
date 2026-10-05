@@ -4,7 +4,13 @@ const KEY="stockDashboardV3";
 const THEME_KEY="alphaPilotTheme";
 const DEFAULT={holdings:[],pledges:[],cashPositions:[],cashTwd:0,cashUsd:0,fxRate:32.5,fxRates:{TWD:1,USD:32.5},finnhubKey:"",history:[],targetWeights:{},allocationGroups:[],targetCashWeight:0,targetBeta:1.20,fixedExpenses:[]};
 let state=(()=>{try{return {...DEFAULT,...JSON.parse(localStorage.getItem(KEY)||"{}")}}catch{return {...DEFAULT}}})();
-state.holdings=(state.holdings||[]).map(h=>({...h,betaManual:Boolean(h.betaManual),stalePrice:Boolean(h.stalePrice),accounts:Array.isArray(h.accounts)?h.accounts.map((x,i)=>({id:String(x.id||`acct-${Date.now()}-${i}`),name:(String(x.name||`帳號 ${i+1}`).trim()==="原持股"?"原帳號":String(x.name||`帳號 ${i+1}`).trim()),shares:Math.max(0,Number(x.shares)||0)})).filter(x=>x.shares>0):[]}));
+state.holdings=(Array.isArray(state.holdings)?state.holdings:[]).filter(h=>h&&typeof h==="object").map(h=>{
+  const rawAccounts=Array.isArray(h.accounts)?h.accounts.filter(x=>x&&typeof x==="object"):[];
+  let accounts=rawAccounts.map((x,i)=>({id:String(x.id||`acct-${Date.now()}-${i}`),name:(String(x.name||`帳號 ${i+1}`).trim()==="原持股"?"原帳號":String(x.name||`帳號 ${i+1}`).trim()),shares:Math.max(0,Number(x.shares)||0)})).filter(x=>x.shares>0);
+  if(!accounts.length&&Math.max(0,Number(h.shares)||0)>0)accounts=[{id:`acct-${Date.now()}-base`,name:"原帳號",shares:Math.max(0,Number(h.shares)||0)}];
+  const total=accounts.reduce((sum,x)=>sum+x.shares,0);
+  return {...h,betaManual:Boolean(h.betaManual),stalePrice:Boolean(h.stalePrice),accounts,shares:total||Math.max(0,Number(h.shares)||0)};
+});
 state.allocationGroups=Array.isArray(state.allocationGroups)?state.allocationGroups:[];
 state.targetCashWeight=Math.max(0,Math.min(100,Number(state.targetCashWeight)||0));
 state.allocationGroups=state.allocationGroups.map((g,i)=>({id:String(g.id||`group-${Date.now()}-${i}`),name:String(g.name||`群組 ${i+1}`).trim(),target:Math.max(0,Math.min(100,Number(g.target)||0)),members:[...new Set((Array.isArray(g.members)?g.members:[]).map(x=>String(x||"").toUpperCase()).filter(Boolean))]}));
@@ -966,7 +972,7 @@ $("menuOverlay").onclick=closeMenu;
 document.querySelectorAll(".side-menu-nav button").forEach(b=>b.onclick=()=>switchPage(b.dataset.tab));
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeMenu()});
 
-switchPage("dashboard");if("serviceWorker"in navigator)navigator.serviceWorker.register("./sw.js?v=12.4.2").catch(()=>{});
+switchPage("dashboard");if("serviceWorker"in navigator)navigator.serviceWorker.register("./sw.js?v=12.4.4").catch(()=>{});
 
 
 function getCurrentHoldingValues(){
