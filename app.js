@@ -456,22 +456,32 @@ window.refreshHolding=async i=>{
 };
 window.removeHolding=i=>{const symbol=state.holdings[i]?.symbol;state.holdings.splice(i,1);if(symbol)state.allocationGroups=(state.allocationGroups||[]).map(g=>({...g,members:g.members.filter(s=>s!==symbol)}));save();render()};
 window.editHolding=async i=>{
-  const h=state.holdings[i];
-  const s=prompt(`${h.symbol} 股數`,h.shares);if(s===null)return;
-  const shares=n(s);if(shares<=0)return toast("股數必須大於 0");
-  const betaInput=prompt(`${h.symbol} 手動 Beta（留空＝恢復系統自動計算）`,h.betaManual?String(h.beta??""):"");
-  if(betaInput===null)return;
-  h.shares=shares;
-  if(String(betaInput).trim()!==""){
-    const manual=Number(betaInput);
-    if(!Number.isFinite(manual)||manual<0||manual>10)return toast("Beta 請輸入 0～10 的數值");
-    h.beta=manual;h.betaManual=true;h.betaSource="manual";h.betaSourceLabel="使用者手動輸入";h.betaBenchmark="";h.betaObservations=0;h.betaUpdatedAt=now();h.error="";
-  }else{
-    h.betaManual=false;
-    try{Object.assign(h,await fetchBeta(h.symbol,h.market));h.error=""}catch(e){h.beta=null;h.error=`Beta：${e.message}`}
-  }
-  save();render();toast(`${h.symbol} 已修改`);
+  const h=state.holdings[i];if(!h)return;
+  const accounts=Array.isArray(h.accounts)&&h.accounts.length?h.accounts.map(x=>({...x})):[{id:`acct-${Date.now()}-base`,name:"原帳號",shares:n(h.shares)}];
+  openHoldingAccountEditor(i,accounts);
 };
+function openHoldingAccountEditor(index,accounts){
+  const h=state.holdings[index];if(!h)return;
+  let modal=$("holdingAccountEditModal");if(modal)modal.remove();
+  modal=document.createElement("div");modal.id="holdingAccountEditModal";modal.className="account-edit-backdrop";
+  modal.innerHTML=`<div class="account-edit-modal" role="dialog" aria-modal="true"><div class="account-edit-head"><div><small>修改持股</small><h3 id="accountEditTitle"></h3></div><button type="button" class="account-edit-close" aria-label="關閉">×</button></div><div id="accountEditRows" class="account-edit-rows"></div><button type="button" class="account-edit-add">＋ 新增帳號</button><label class="account-beta-label">手動 Beta（留空＝系統自動）<input id="accountEditBeta" type="number" min="0" max="10" step="0.01" inputmode="decimal"></label><div class="account-edit-actions"><button type="button" class="secondary account-edit-cancel">取消</button><button type="button" class="primary account-edit-save">儲存修改</button></div></div>`;
+  document.body.appendChild(modal);
+  modal.querySelector('.account-edit-close').onclick=modal.querySelector('.account-edit-cancel').onclick=()=>modal.remove();
+  modal.addEventListener('pointerdown',e=>{if(e.target===modal)modal.remove()});
+  $("accountEditTitle").textContent=`${h.symbol} 各帳號股數`;$("accountEditBeta").value=h.betaManual?String(h.beta??""):"";
+  const rows=$("accountEditRows");
+  const esc=v=>String(v||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+  const sync=()=>{[...rows.querySelectorAll('.account-edit-row')].forEach((row,j)=>{if(accounts[j]){accounts[j].name=row.querySelector('.account-edit-name').value;accounts[j].shares=n(row.querySelector('.account-edit-shares').value)}})};
+  const renderRows=()=>{rows.innerHTML=accounts.map((a,j)=>`<div class="account-edit-row"><input class="account-edit-name" value="${esc(a.name)}" placeholder="帳號名稱"><input class="account-edit-shares" type="number" min="0" step="any" inputmode="decimal" value="${n(a.shares)}" placeholder="股數"><button type="button" class="account-edit-remove" data-j="${j}" aria-label="刪除此帳號">×</button></div>`).join('');rows.querySelectorAll('.account-edit-remove').forEach(b=>b.onclick=()=>{sync();accounts.splice(Number(b.dataset.j),1);renderRows()})};
+  renderRows();
+  modal.querySelector('.account-edit-add').onclick=()=>{sync();accounts.push({id:`acct-${Date.now()}-${Math.random().toString(36).slice(2,7)}`,name:"",shares:0});renderRows();rows.querySelector('.account-edit-row:last-child .account-edit-name')?.focus()};
+  modal.querySelector('.account-edit-save').onclick=async()=>{
+    sync();const merged=new Map();accounts.forEach(a=>{const name=String(a.name||'').trim()||"原帳號",shares=Math.max(0,n(a.shares));if(shares>0)merged.set(name,(merged.get(name)||0)+shares)});
+    const clean=[...merged.entries()].map(([name,shares],j)=>({id:`acct-${Date.now()}-${j}`,name,shares}));const total=clean.reduce((sum,x)=>sum+x.shares,0);if(total<=0)return toast("至少要保留一個帳號且股數大於 0");
+    const betaRaw=String($("accountEditBeta").value||"").trim();if(betaRaw!==""){const manual=Number(betaRaw);if(!Number.isFinite(manual)||manual<0||manual>10)return toast("Beta 請輸入 0～10 的數值");h.beta=manual;h.betaManual=true;h.betaSource="manual";h.betaSourceLabel="使用者手動輸入";h.betaBenchmark="";h.betaObservations=0;h.betaUpdatedAt=now();h.error="";}else{h.betaManual=false;try{Object.assign(h,await fetchBeta(h.symbol,h.market));h.error=""}catch(e){h.beta=null;h.error=`Beta：${e.message}`}}
+    h.accounts=clean;h.shares=total;save();render();modal.remove();toast(`${h.symbol} 各帳號持股已更新`);
+  };
+}
 
 
 function chartIsLight(){return document.body.classList.contains("light-mode")}
@@ -593,7 +603,7 @@ function resetHoldingAccountForm(){if($("enableHoldingAccount"))$("enableHolding
 function addSharesToAccount(holding,shares,name){
   if(!Array.isArray(holding.accounts))holding.accounts=[];
   if(!holding.accounts.length&&n(holding.shares)>0){holding.accounts.push({id:`acct-${Date.now()}-base`,name:"原持股",shares:n(holding.shares)})}
-  const key=String(name||"另一帳號").trim()||"另一帳號";
+  const key=String(name||"原帳號").trim()||"原帳號";
   const existing=holding.accounts.find(x=>x.name===key);
   if(existing)existing.shares=n(existing.shares)+shares;else holding.accounts.push({id:`acct-${Date.now()}-${Math.random().toString(36).slice(2,7)}`,name:key,shares});
   holding.shares=holding.accounts.reduce((sum,x)=>sum+n(x.shares),0);
@@ -612,8 +622,8 @@ $("addHolding").onclick=async()=>{
   if(existingIndex>=0){
     const holding=state.holdings[existingIndex];
     const oldShares=n(holding.shares);
-    if(splitAccountEnabled())addSharesToAccount(holding,shares,accountNameValue()||"另一帳號");
-    else {holding.shares=oldShares+shares;if(holding.accounts?.length)holding.accounts[0].shares=n(holding.accounts[0].shares)+shares;}
+    if(splitAccountEnabled())addSharesToAccount(holding,shares,accountNameValue()||"原帳號");
+    else addSharesToAccount(holding,shares,"原帳號");
     if(manualPrice>0&&n(holding.price)<=0){holding.price=manualPrice;holding.updatedAt=`手動 ${now()}`;holding.stalePrice=true;}
     if(hasManualBeta){holding.beta=manualBeta;holding.betaManual=true;holding.betaSource="manual";holding.betaSourceLabel="使用者手動輸入";holding.betaBenchmark="";holding.betaObservations=0;holding.betaUpdatedAt=now();holding.error="";}
     state.holdings.sort((a,b)=>(a.symbol||"").localeCompare(b.symbol||"",undefined,{numeric:true,sensitivity:"base"}));
@@ -650,7 +660,7 @@ $("addHolding").onclick=async()=>{
       manualOnly:Boolean(detected.manualOnly),
       assetType:detected.assetType||"stock",
       shares,
-      accounts:splitAccountEnabled()?[{id:`acct-${Date.now()}`,name:accountNameValue()||"帳號 1",shares}]:[],
+      accounts:[{id:`acct-${Date.now()}`,name:splitAccountEnabled()?(accountNameValue()||"原帳號"):"原帳號",shares}],
       price,
       previousClose:detected.previousClose,
       pledgeAmount:0,
@@ -928,7 +938,7 @@ $("menuOverlay").onclick=closeMenu;
 document.querySelectorAll(".side-menu-nav button").forEach(b=>b.onclick=()=>switchPage(b.dataset.tab));
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeMenu()});
 
-switchPage("dashboard");if("serviceWorker"in navigator)navigator.serviceWorker.register("./sw.js?v=12.4.0").catch(()=>{});
+switchPage("dashboard");if("serviceWorker"in navigator)navigator.serviceWorker.register("./sw.js?v=12.4.1").catch(()=>{});
 
 
 function getCurrentHoldingValues(){
