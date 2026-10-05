@@ -16,8 +16,8 @@
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
   <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
-  <link rel="stylesheet" href="style.css?v=12.3.5">
-  <title>AlphaPilot V12.3.5</title>
+  <link rel="stylesheet" href="style.css?v=12.4.0">
+  <title>AlphaPilot V12.4.0</title>
 </head>
 <body>
   <div id="pwaSplash" class="pwa-splash" aria-hidden="true">
@@ -39,7 +39,7 @@
       <div>
         <div class="brand-lockup">
           <img src="alphapilot-brand.png" class="brand-icon brand-art" alt="AlphaPilot">
-          <div><p class="eyebrow">ERIC'S PORTFOLIO</p><h1>AlphaPilot <em>V12.3.5</em></h1></div>
+          <div><p class="eyebrow">ERIC'S PORTFOLIO</p><h1>AlphaPilot <em>V12.4.0</em></h1></div>
         </div>
       </div>
       <div class="hero-actions">
@@ -129,6 +129,10 @@
           <label>手動 Beta（選填）<input id="manualBeta" type="number" min="0" max="10" step="0.01" inputmode="decimal" placeholder="新上市／無法回測時使用"></label>
         </div>
         <div class="auto-beta-hint compact-hint">📐 Beta 預設由系統自動判斷；新上市或資料不足時可直接輸入手動 Beta。手動值會保留，按「更新全部」也不會覆蓋。</div>
+        <div class="optional-account-row">
+          <label class="account-toggle"><input id="enableHoldingAccount" type="checkbox"> <span>＋ 分帳紀錄（選填）</span></label>
+          <div id="holdingAccountFields" hidden><label>帳號名稱<input id="holdingAccountName" placeholder="例如：帳號 A、券商 B" autocomplete="off"></label></div>
+        </div>
         <div id="quoteSkeleton" class="quote-skeleton" hidden aria-hidden="true">
           <div class="skeleton-row"><span class="skeleton-circle"></span><span class="skeleton-line long"></span></div>
           <div class="skeleton-line medium"></div>
@@ -339,7 +343,7 @@
 
     <section id="settings" class="tab-panel">
       <article class="card">
-        <div class="section-head settings-version-only"><span>AlphaPilot V12.3.5</span></div>
+        <div class="section-head settings-version-only"><span>AlphaPilot V12.4.0</span></div>
         <div class="architecture-status">
           <div class="status-orb">☁️</div>
           <div>
@@ -369,6 +373,6 @@
 
     <div id="toast" class="toast"></div>
   </main>
-  <script src="app.js?v=12.3.5"></script>
+  <script src="app.js?v=12.4.0"></script>
 </body>
 </html>

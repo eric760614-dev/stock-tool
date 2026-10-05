@@ -4,7 +4,7 @@ const KEY="stockDashboardV3";
 const THEME_KEY="alphaPilotTheme";
 const DEFAULT={holdings:[],pledges:[],cashPositions:[],cashTwd:0,cashUsd:0,fxRate:32.5,fxRates:{TWD:1,USD:32.5},finnhubKey:"",history:[],targetWeights:{},allocationGroups:[],targetCashWeight:0,targetBeta:1.20,fixedExpenses:[]};
 let state=(()=>{try{return {...DEFAULT,...JSON.parse(localStorage.getItem(KEY)||"{}")}}catch{return {...DEFAULT}}})();
-state.holdings=(state.holdings||[]).map(h=>({...h,betaManual:Boolean(h.betaManual),stalePrice:Boolean(h.stalePrice)}));
+state.holdings=(state.holdings||[]).map(h=>({...h,betaManual:Boolean(h.betaManual),stalePrice:Boolean(h.stalePrice),accounts:Array.isArray(h.accounts)?h.accounts.map((x,i)=>({id:String(x.id||`acct-${Date.now()}-${i}`),name:String(x.name||`帳號 ${i+1}`).trim(),shares:Math.max(0,Number(x.shares)||0)})).filter(x=>x.shares>0):[]}));
 state.allocationGroups=Array.isArray(state.allocationGroups)?state.allocationGroups:[];
 state.targetCashWeight=Math.max(0,Math.min(100,Number(state.targetCashWeight)||0));
 state.allocationGroups=state.allocationGroups.map((g,i)=>({id:String(g.id||`group-${Date.now()}-${i}`),name:String(g.name||`群組 ${i+1}`).trim(),target:Math.max(0,Math.min(100,Number(g.target)||0)),members:[...new Set((Array.isArray(g.members)?g.members:[]).map(x=>String(x||"").toUpperCase()).filter(Boolean))]}));
@@ -310,6 +310,7 @@ function renderHoldings(){
           ${change===null?"":`｜<span class="${change>=0?"positive":"negative"}">${change>=0?"+":""}${fmt(change,2)}%</span>`}
           ${h.beta!==undefined&&h.beta!==null&&h.beta!==""?`<br>Beta ${fmt(h.beta,2)} <span class="beta-source-pill ${h.betaManual?"manual":"auto"}">${h.betaManual?"手動":"自動"}</span>`:"<br>Beta 尚未計算"}
           <br>${h.updatedAt?``:"尚未取得報價"}
+          ${h.accounts?.length?`<div class="holding-accounts">${h.accounts.map(x=>`<span>${x.name}：${fmt(x.shares,4)} 股</span>`).join("")}</div>`:""}
           ${h.error?`<br><span class="holding-error">${h.error}</span>`:""}
         </div>
         <div class="holding-actions holding-icon-actions">
@@ -331,6 +332,7 @@ function stockSearchResults(query){
   const q=normalizedSearchText(query);if(!q)return [];
   const holdings=state.holdings.map(h=>({symbol:h.symbol,name:h.name||h.symbol,market:h.market==="TW"?"台股":"美股"}));
   const map=new Map([...holdings,...STOCK_SEARCH_CATALOG].map(x=>[x.symbol,x]));
+  if(/^(?:\d{4,6}[A-Z]?|[A-Z][A-Z0-9.\-]{0,9})$/.test(q)&&!map.has(q))map.set(q,{symbol:q,name:"直接查詢此代號",market:/^\d/.test(q)?"台股":"美股"});
   return [...map.values()].map(item=>{
     const symbol=item.symbol.toUpperCase(),name=String(item.name||"").toUpperCase();
     let score=99;
@@ -344,7 +346,7 @@ function renderStockSuggestions(query){
   const box=$("stockSuggestions"),input=$("symbol");if(!box||!input)return;
   const q=String(query||"").trim();if(!q){closeStockSuggestions();return}
   const results=stockSearchResults(q);
-  box.innerHTML=results.length?results.map((item,index)=>`<button type="button" class="stock-suggestion${index===0?" active":""}" role="option" data-symbol="${item.symbol}" aria-selected="${index===0}"><span class="stock-suggestion-badge">${item.symbol.slice(0,2)}</span><span class="stock-suggestion-copy"><strong>${item.symbol}</strong><small>${item.name}</small></span><span class="stock-suggestion-market">${item.market}</span></button>`).join(""):`<div class="stock-suggestion-empty">找不到內建建議，仍可直接輸入代號查詢</div>`;
+  box.innerHTML=results.length?results.map((item,index)=>`<button type="button" class="stock-suggestion${index===0?" active":""}" role="option" data-symbol="${item.symbol}" aria-selected="${index===0}"><span class="stock-suggestion-badge">${item.symbol.slice(0,2)}</span><span class="stock-suggestion-copy"><strong>${item.symbol}</strong><small>${item.name}</small></span><span class="stock-suggestion-market">${item.market}</span></button>`).join(""):`<div class="stock-suggestion-empty">可直接輸入完整股票代號，系統會即時辨識</div>`;
   box.hidden=false;input.setAttribute("aria-expanded","true");
   box.querySelectorAll("[data-symbol]").forEach(button=>button.addEventListener("pointerdown",event=>{event.preventDefault();chooseStockSuggestion(button.dataset.symbol)}));
 }
@@ -585,6 +587,18 @@ function renderHistory(){
   $("historyList").innerHTML=d.length?d.slice().reverse().map(x=>`<div class="history-item"><span>${x.date}</span><strong>${money(x.total)}</strong></div>`).join(""):`<div class="history-empty">本月尚無資產紀錄</div>`;
 }
 
+function splitAccountEnabled(){return Boolean($("enableHoldingAccount")?.checked)}
+function accountNameValue(){return String($("holdingAccountName")?.value||"").trim()}
+function resetHoldingAccountForm(){if($("enableHoldingAccount"))$("enableHoldingAccount").checked=false;if($("holdingAccountFields"))$("holdingAccountFields").hidden=true;if($("holdingAccountName"))$("holdingAccountName").value=""}
+function addSharesToAccount(holding,shares,name){
+  if(!Array.isArray(holding.accounts))holding.accounts=[];
+  if(!holding.accounts.length&&n(holding.shares)>0){holding.accounts.push({id:`acct-${Date.now()}-base`,name:"原持股",shares:n(holding.shares)})}
+  const key=String(name||"另一帳號").trim()||"另一帳號";
+  const existing=holding.accounts.find(x=>x.name===key);
+  if(existing)existing.shares=n(existing.shares)+shares;else holding.accounts.push({id:`acct-${Date.now()}-${Math.random().toString(36).slice(2,7)}`,name:key,shares});
+  holding.shares=holding.accounts.reduce((sum,x)=>sum+n(x.shares),0);
+}
+
 $("addHolding").onclick=async()=>{
   const symbol=$("symbol").value.trim().toUpperCase().replace(/\s+/g,"");
   const shares=n($("shares").value),manualPrice=n($("manualPrice").value);
@@ -598,7 +612,8 @@ $("addHolding").onclick=async()=>{
   if(existingIndex>=0){
     const holding=state.holdings[existingIndex];
     const oldShares=n(holding.shares);
-    holding.shares=oldShares+shares;
+    if(splitAccountEnabled())addSharesToAccount(holding,shares,accountNameValue()||"另一帳號");
+    else {holding.shares=oldShares+shares;if(holding.accounts?.length)holding.accounts[0].shares=n(holding.accounts[0].shares)+shares;}
     if(manualPrice>0&&n(holding.price)<=0){holding.price=manualPrice;holding.updatedAt=`手動 ${now()}`;holding.stalePrice=true;}
     if(hasManualBeta){holding.beta=manualBeta;holding.betaManual=true;holding.betaSource="manual";holding.betaSourceLabel="使用者手動輸入";holding.betaBenchmark="";holding.betaObservations=0;holding.betaUpdatedAt=now();holding.error="";}
     state.holdings.sort((a,b)=>(a.symbol||"").localeCompare(b.symbol||"",undefined,{numeric:true,sensitivity:"base"}));
@@ -606,7 +621,7 @@ $("addHolding").onclick=async()=>{
     render();
     $("symbol").value="";
     $("shares").value="";
-    $("manualPrice").value="";if($("manualBeta"))$("manualBeta").value="";
+    $("manualPrice").value="";if($("manualBeta"))$("manualBeta").value="";resetHoldingAccountForm();
     $("symbolStatus").textContent=`已合併 ${symbol}：${oldShares} + ${shares} = ${holding.shares}`;
     $("symbolStatus").className="field-status success";
     toast(`已將 ${symbol} 從 ${oldShares} 股增加為 ${holding.shares} 股`);
@@ -635,6 +650,7 @@ $("addHolding").onclick=async()=>{
       manualOnly:Boolean(detected.manualOnly),
       assetType:detected.assetType||"stock",
       shares,
+      accounts:splitAccountEnabled()?[{id:`acct-${Date.now()}`,name:accountNameValue()||"帳號 1",shares}]:[],
       price,
       previousClose:detected.previousClose,
       pledgeAmount:0,
@@ -663,7 +679,7 @@ $("addHolding").onclick=async()=>{
     render();
     $("symbol").value="";
     $("shares").value="";
-    $("manualPrice").value="";if($("manualBeta"))$("manualBeta").value="";
+    $("manualPrice").value="";if($("manualBeta"))$("manualBeta").value="";resetHoldingAccountForm();
     $("symbolStatus").textContent=`已辨識為${detected.market==="TW"?"台股":"美股"}：${detected.name||symbol}${hasManualBeta?"｜使用手動 Beta":""}`;
     $("symbolStatus").className="field-status success";
     button.classList.add("is-success");
@@ -912,7 +928,7 @@ $("menuOverlay").onclick=closeMenu;
 document.querySelectorAll(".side-menu-nav button").forEach(b=>b.onclick=()=>switchPage(b.dataset.tab));
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeMenu()});
 
-switchPage("dashboard");if("serviceWorker"in navigator)navigator.serviceWorker.register("./sw.js?v=12.3.5").catch(()=>{});
+switchPage("dashboard");if("serviceWorker"in navigator)navigator.serviceWorker.register("./sw.js?v=12.4.0").catch(()=>{});
 
 
 function getCurrentHoldingValues(){
