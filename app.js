@@ -328,26 +328,31 @@ const STOCK_SEARCH_CATALOG=[
   {symbol:"QQQ",name:"Invesco QQQ Trust",market:"美股"},{symbol:"QQQM",name:"Invesco NASDAQ 100 ETF",market:"美股"},{symbol:"VT",name:"Vanguard Total World Stock ETF",market:"美股"},{symbol:"VOO",name:"Vanguard S&P 500 ETF",market:"美股"},{symbol:"VXUS",name:"Vanguard Total International Stock ETF",market:"美股"},{symbol:"QLD",name:"ProShares Ultra QQQ",market:"美股"},{symbol:"AAPL",name:"Apple",market:"美股"},{symbol:"MSFT",name:"Microsoft",market:"美股"},{symbol:"NVDA",name:"NVIDIA",market:"美股"}
 ];
 function normalizedSearchText(value){return String(value||"").trim().toUpperCase().replace(/\s+/g,"")}
-function stockSearchResults(query){
+let remoteSearchSeq=0;
+function localStockSearchResults(query){
   const q=normalizedSearchText(query);if(!q)return [];
   const holdings=state.holdings.map(h=>({symbol:h.symbol,name:h.name||h.symbol,market:h.market==="TW"?"台股":"美股"}));
   const map=new Map([...holdings,...STOCK_SEARCH_CATALOG].map(x=>[x.symbol,x]));
   if(/^(?:\d{4,6}[A-Z]?|[A-Z][A-Z0-9.\-]{0,9})$/.test(q)&&!map.has(q))map.set(q,{symbol:q,name:"直接查詢此代號",market:/^\d/.test(q)?"台股":"美股"});
-  return [...map.values()].map(item=>{
-    const symbol=item.symbol.toUpperCase(),name=String(item.name||"").toUpperCase();
-    let score=99;
-    if(symbol===q)score=0;else if(symbol.startsWith(q))score=1;else if(name.startsWith(q))score=2;else if(symbol.includes(q))score=3;else if(name.includes(q))score=4;
-    return {...item,score};
-  }).filter(x=>x.score<99).sort((a,b)=>a.score-b.score||a.symbol.localeCompare(b.symbol,undefined,{numeric:true})).slice(0,8);
+  return [...map.values()].map(item=>{const symbol=item.symbol.toUpperCase(),name=String(item.name||"").toUpperCase();let score=99;if(symbol===q)score=0;else if(symbol.startsWith(q))score=1;else if(name.startsWith(q))score=2;else if(symbol.includes(q))score=3;else if(name.includes(q))score=4;return {...item,score};}).filter(x=>x.score<99).sort((a,b)=>a.score-b.score||a.symbol.localeCompare(b.symbol,undefined,{numeric:true})).slice(0,8);
+}
+async function stockSearchResults(query){
+  const q=normalizedSearchText(query);if(!q)return [];
+  const local=localStockSearchResults(q);
+  try{
+    const r=await fetch(`/api/search?q=${encodeURIComponent(q)}`,{cache:"no-store"});const d=await r.json();
+    const remote=(r.ok&&d.ok&&Array.isArray(d.results)?d.results:[]).map(x=>({...x,market:x.market==="TW"?"台股":"美股"}));
+    const map=new Map();[...local,...remote].forEach(x=>{const key=`${x.market}:${x.symbol}`;if(!map.has(key)||String(x.name||"").includes("直接查詢"))map.set(key,x)});
+    return [...map.values()].sort((a,b)=>(a.symbol===q?-10:0)-(b.symbol===q?-10:0)||a.symbol.localeCompare(b.symbol,undefined,{numeric:true})).slice(0,10);
+  }catch(e){return local}
 }
 function closeStockSuggestions(){const box=$("stockSuggestions"),input=$("symbol");if(box){box.hidden=true;box.innerHTML=""}if(input)input.setAttribute("aria-expanded","false")}
 function chooseStockSuggestion(symbol){$("symbol").value=symbol;closeStockSuggestions();$("shares")?.focus()}
-function renderStockSuggestions(query){
-  const box=$("stockSuggestions"),input=$("symbol");if(!box||!input)return;
-  const q=String(query||"").trim();if(!q){closeStockSuggestions();return}
-  const results=stockSearchResults(q);
-  box.innerHTML=results.length?results.map((item,index)=>`<button type="button" class="stock-suggestion${index===0?" active":""}" role="option" data-symbol="${item.symbol}" aria-selected="${index===0}"><span class="stock-suggestion-badge">${item.symbol.slice(0,2)}</span><span class="stock-suggestion-copy"><strong>${item.symbol}</strong><small>${item.name}</small></span><span class="stock-suggestion-market">${item.market}</span></button>`).join(""):`<div class="stock-suggestion-empty">可直接輸入完整股票代號，系統會即時辨識</div>`;
-  box.hidden=false;input.setAttribute("aria-expanded","true");
+async function renderStockSuggestions(query){
+  const box=$("stockSuggestions"),input=$("symbol");if(!box||!input)return;const q=String(query||"").trim();if(!q){closeStockSuggestions();return}
+  const seq=++remoteSearchSeq;box.hidden=false;input.setAttribute("aria-expanded","true");box.innerHTML=`<div class="stock-suggestion-empty">搜尋台股／美股中…</div>`;
+  const results=await stockSearchResults(q);if(seq!==remoteSearchSeq||normalizedSearchText(input.value)!==normalizedSearchText(q))return;
+  box.innerHTML=results.length?results.map((item,index)=>`<button type="button" class="stock-suggestion${index===0?" active":""}" role="option" data-symbol="${item.symbol}" aria-selected="${index===0}"><span class="stock-suggestion-badge">${item.symbol.slice(0,2)}</span><span class="stock-suggestion-copy"><strong>${item.symbol}</strong><small>${item.name}</small></span><span class="stock-suggestion-market">${item.market}</span></button>`).join(""):`<div class="stock-suggestion-empty">查無符合的台股／美股；完整代號仍可直接驗證</div>`;
   box.querySelectorAll("[data-symbol]").forEach(button=>button.addEventListener("pointerdown",event=>{event.preventDefault();chooseStockSuggestion(button.dataset.symbol)}));
 }
 function installStockSearch(){
@@ -938,7 +943,7 @@ $("menuOverlay").onclick=closeMenu;
 document.querySelectorAll(".side-menu-nav button").forEach(b=>b.onclick=()=>switchPage(b.dataset.tab));
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeMenu()});
 
-switchPage("dashboard");if("serviceWorker"in navigator)navigator.serviceWorker.register("./sw.js?v=12.4.1").catch(()=>{});
+switchPage("dashboard");if("serviceWorker"in navigator)navigator.serviceWorker.register("./sw.js?v=12.4.2").catch(()=>{});
 
 
 function getCurrentHoldingValues(){
