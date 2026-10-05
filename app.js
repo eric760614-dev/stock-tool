@@ -4,7 +4,7 @@ const KEY="stockDashboardV3";
 const THEME_KEY="alphaPilotTheme";
 const DEFAULT={holdings:[],pledges:[],cashPositions:[],cashTwd:0,cashUsd:0,fxRate:32.5,fxRates:{TWD:1,USD:32.5},finnhubKey:"",history:[],targetWeights:{},allocationGroups:[],targetCashWeight:0,targetBeta:1.20,fixedExpenses:[]};
 let state=(()=>{try{return {...DEFAULT,...JSON.parse(localStorage.getItem(KEY)||"{}")}}catch{return {...DEFAULT}}})();
-state.holdings=(state.holdings||[]).map(h=>({...h,betaManual:Boolean(h.betaManual),stalePrice:Boolean(h.stalePrice),accounts:Array.isArray(h.accounts)?h.accounts.map((x,i)=>({id:String(x.id||`acct-${Date.now()}-${i}`),name:String(x.name||`帳號 ${i+1}`).trim(),shares:Math.max(0,Number(x.shares)||0)})).filter(x=>x.shares>0):[]}));
+state.holdings=(state.holdings||[]).map(h=>({...h,betaManual:Boolean(h.betaManual),stalePrice:Boolean(h.stalePrice),accounts:Array.isArray(h.accounts)?h.accounts.map((x,i)=>({id:String(x.id||`acct-${Date.now()}-${i}`),name:(String(x.name||`帳號 ${i+1}`).trim()==="原持股"?"原帳號":String(x.name||`帳號 ${i+1}`).trim()),shares:Math.max(0,Number(x.shares)||0)})).filter(x=>x.shares>0):[]}));
 state.allocationGroups=Array.isArray(state.allocationGroups)?state.allocationGroups:[];
 state.targetCashWeight=Math.max(0,Math.min(100,Number(state.targetCashWeight)||0));
 state.allocationGroups=state.allocationGroups.map((g,i)=>({id:String(g.id||`group-${Date.now()}-${i}`),name:String(g.name||`群組 ${i+1}`).trim(),target:Math.max(0,Math.min(100,Number(g.target)||0)),members:[...new Set((Array.isArray(g.members)?g.members:[]).map(x=>String(x||"").toUpperCase()).filter(Boolean))]}));
@@ -285,6 +285,21 @@ window.removePledge=i=>{
   }
 };
 
+function accountHue(name){
+  const text=String(name||"原帳號");
+  let hash=0;for(let i=0;i<text.length;i++)hash=(hash*31+text.charCodeAt(i))>>>0;
+  return hash%360;
+}
+function allAccountNames(){
+  const names=new Set(["原帳號"]);
+  state.holdings.forEach(h=>(h.accounts||[]).forEach(a=>{const name=String(a.name||"").trim();if(name)names.add(name==="原持股"?"原帳號":name)}));
+  return [...names];
+}
+function refreshHoldingAccountOptions(){
+  const list=$("holdingAccountOptions");if(!list)return;
+  list.innerHTML=allAccountNames().filter(x=>x!=="原帳號").map(name=>`<option value="${esc(name)}"></option>`).join("");
+}
+
 function renderHoldings(){
   const list=$("holdingsList");
   if(!state.holdings.length){
@@ -310,7 +325,7 @@ function renderHoldings(){
           ${change===null?"":`｜<span class="${change>=0?"positive":"negative"}">${change>=0?"+":""}${fmt(change,2)}%</span>`}
           ${h.beta!==undefined&&h.beta!==null&&h.beta!==""?`<br>Beta ${fmt(h.beta,2)} <span class="beta-source-pill ${h.betaManual?"manual":"auto"}">${h.betaManual?"手動":"自動"}</span>`:"<br>Beta 尚未計算"}
           <br>${h.updatedAt?``:"尚未取得報價"}
-          ${h.accounts?.length?`<div class="holding-accounts">${h.accounts.map(x=>`<span>${x.name}：${fmt(x.shares,4)} 股</span>`).join("")}</div>`:""}
+          ${h.accounts?.length?`<div class="holding-accounts">${h.accounts.map(x=>`<span class="account-chip" style="--account-hue:${accountHue(x.name)}">${esc(x.name)}：${fmt(x.shares,4)} 股</span>`).join("")}</div>`:""}
           ${h.error?`<br><span class="holding-error">${h.error}</span>`:""}
         </div>
         <div class="holding-actions holding-icon-actions">
@@ -604,15 +619,23 @@ function renderHistory(){
 
 function splitAccountEnabled(){return Boolean($("enableHoldingAccount")?.checked)}
 function accountNameValue(){return String($("holdingAccountName")?.value||"").trim()}
-function resetHoldingAccountForm(){if($("enableHoldingAccount"))$("enableHoldingAccount").checked=false;if($("holdingAccountFields"))$("holdingAccountFields").hidden=true;if($("holdingAccountName"))$("holdingAccountName").value=""}
+function resetHoldingAccountForm(){if($("enableHoldingAccount"))$("enableHoldingAccount").checked=false;if($("holdingAccountFields"))$("holdingAccountFields").hidden=true;if($("holdingAccountName"))$("holdingAccountName").value="";refreshHoldingAccountOptions()}
 function addSharesToAccount(holding,shares,name){
   if(!Array.isArray(holding.accounts))holding.accounts=[];
-  if(!holding.accounts.length&&n(holding.shares)>0){holding.accounts.push({id:`acct-${Date.now()}-base`,name:"原持股",shares:n(holding.shares)})}
+  if(!holding.accounts.length&&n(holding.shares)>0){holding.accounts.push({id:`acct-${Date.now()}-base`,name:"原帳號",shares:n(holding.shares)})}
   const key=String(name||"原帳號").trim()||"原帳號";
-  const existing=holding.accounts.find(x=>x.name===key);
+  const existing=holding.accounts.find(x=>String(x.name||"").trim().toLocaleLowerCase()===key.toLocaleLowerCase());
   if(existing)existing.shares=n(existing.shares)+shares;else holding.accounts.push({id:`acct-${Date.now()}-${Math.random().toString(36).slice(2,7)}`,name:key,shares});
   holding.shares=holding.accounts.reduce((sum,x)=>sum+n(x.shares),0);
 }
+
+$("enableHoldingAccount")?.addEventListener("change",e=>{
+  const fields=$("holdingAccountFields");if(fields)fields.hidden=!e.target.checked;
+  if(e.target.checked){refreshHoldingAccountOptions();setTimeout(()=>$("holdingAccountName")?.focus(),0)}
+  else if($("holdingAccountName"))$("holdingAccountName").value="";
+});
+$("holdingAccountName")?.addEventListener("focus",refreshHoldingAccountOptions);
+refreshHoldingAccountOptions();
 
 $("addHolding").onclick=async()=>{
   const symbol=$("symbol").value.trim().toUpperCase().replace(/\s+/g,"");
