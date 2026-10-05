@@ -4,13 +4,7 @@ const KEY="stockDashboardV3";
 const THEME_KEY="alphaPilotTheme";
 const DEFAULT={holdings:[],pledges:[],cashPositions:[],cashTwd:0,cashUsd:0,fxRate:32.5,fxRates:{TWD:1,USD:32.5},finnhubKey:"",history:[],targetWeights:{},allocationGroups:[],targetCashWeight:0,targetBeta:1.20,fixedExpenses:[]};
 let state=(()=>{try{return {...DEFAULT,...JSON.parse(localStorage.getItem(KEY)||"{}")}}catch{return {...DEFAULT}}})();
-state.holdings=(Array.isArray(state.holdings)?state.holdings:[]).filter(h=>h&&typeof h==="object").map(h=>{
-  const rawAccounts=Array.isArray(h.accounts)?h.accounts.filter(x=>x&&typeof x==="object"):[];
-  let accounts=rawAccounts.map((x,i)=>({id:String(x.id||`acct-${Date.now()}-${i}`),name:(String(x.name||`帳號 ${i+1}`).trim()==="原持股"?"原帳號":String(x.name||`帳號 ${i+1}`).trim()),shares:Math.max(0,Number(x.shares)||0)})).filter(x=>x.shares>0);
-  if(!accounts.length&&Math.max(0,Number(h.shares)||0)>0)accounts=[{id:`acct-${Date.now()}-base`,name:"原帳號",shares:Math.max(0,Number(h.shares)||0)}];
-  const total=accounts.reduce((sum,x)=>sum+x.shares,0);
-  return {...h,betaManual:Boolean(h.betaManual),stalePrice:Boolean(h.stalePrice),accounts,shares:total||Math.max(0,Number(h.shares)||0)};
-});
+state.holdings=(state.holdings||[]).map(h=>({...h,betaManual:Boolean(h.betaManual),stalePrice:Boolean(h.stalePrice),accounts:Array.isArray(h.accounts)?h.accounts.map((x,i)=>({id:String(x.id||`acct-${Date.now()}-${i}`),name:(String(x.name||`帳號 ${i+1}`).trim()==="原持股"?"原帳號":String(x.name||`帳號 ${i+1}`).trim()),shares:Math.max(0,Number(x.shares)||0)})).filter(x=>x.shares>0):[]}));
 state.allocationGroups=Array.isArray(state.allocationGroups)?state.allocationGroups:[];
 state.targetCashWeight=Math.max(0,Math.min(100,Number(state.targetCashWeight)||0));
 state.allocationGroups=state.allocationGroups.map((g,i)=>({id:String(g.id||`group-${Date.now()}-${i}`),name:String(g.name||`群組 ${i+1}`).trim(),target:Math.max(0,Math.min(100,Number(g.target)||0)),members:[...new Set((Array.isArray(g.members)?g.members:[]).map(x=>String(x||"").toUpperCase()).filter(Boolean))]}));
@@ -291,19 +285,28 @@ window.removePledge=i=>{
   }
 };
 
+function normalizeAccountName(name){
+  const value=String(name||"").trim();
+  return !value||value==="原持股"?"原帳號":value;
+}
 function accountHue(name){
-  const text=String(name||"原帳號");
-  let hash=0;for(let i=0;i<text.length;i++)hash=(hash*31+text.charCodeAt(i))>>>0;
+  const text=normalizeAccountName(name);
+  let hash=0;
+  for(let i=0;i<text.length;i++)hash=(hash*31+text.charCodeAt(i))>>>0;
   return hash%360;
 }
 function allAccountNames(){
-  const names=new Set(["原帳號"]);
-  state.holdings.forEach(h=>(h.accounts||[]).forEach(a=>{const name=String(a.name||"").trim();if(name)names.add(name==="原持股"?"原帳號":name)}));
-  return [...names];
+  const names=new Map();
+  state.holdings.forEach(h=>(h.accounts||[]).forEach(a=>{
+    const name=normalizeAccountName(a.name);
+    if(name!=="原帳號")names.set(name.toLocaleLowerCase(),name);
+  }));
+  return [...names.values()].sort((a,b)=>a.localeCompare(b,"zh-Hant"));
 }
 function refreshHoldingAccountOptions(){
-  const list=$("holdingAccountOptions");if(!list)return;
-  list.innerHTML=allAccountNames().filter(x=>x!=="原帳號").map(name=>`<option value="${esc(name)}"></option>`).join("");
+  const list=$("holdingAccountOptions");
+  if(!list)return;
+  list.innerHTML=allAccountNames().map(name=>`<option value="${esc(name)}"></option>`).join("");
 }
 
 function renderHoldings(){
@@ -331,7 +334,7 @@ function renderHoldings(){
           ${change===null?"":`｜<span class="${change>=0?"positive":"negative"}">${change>=0?"+":""}${fmt(change,2)}%</span>`}
           ${h.beta!==undefined&&h.beta!==null&&h.beta!==""?`<br>Beta ${fmt(h.beta,2)} <span class="beta-source-pill ${h.betaManual?"manual":"auto"}">${h.betaManual?"手動":"自動"}</span>`:"<br>Beta 尚未計算"}
           <br>${h.updatedAt?``:"尚未取得報價"}
-          ${h.accounts?.length?`<div class="holding-accounts">${h.accounts.map(x=>`<span class="account-chip" style="--account-hue:${accountHue(x.name)}">${esc(x.name)}：${fmt(x.shares,4)} 股</span>`).join("")}</div>`:""}
+          ${h.accounts?.length?`<div class="holding-accounts">${h.accounts.map(x=>`<span class="account-chip" style="--account-hue:${accountHue(x.name)}">${esc(normalizeAccountName(x.name))}：${fmt(x.shares,4)} 股</span>`).join("")}</div>`:""}
           ${h.error?`<br><span class="holding-error">${h.error}</span>`:""}
         </div>
         <div class="holding-actions holding-icon-actions">
@@ -484,6 +487,7 @@ window.removeHolding=i=>{const symbol=state.holdings[i]?.symbol;state.holdings.s
 window.editHolding=async i=>{
   const h=state.holdings[i];if(!h)return;
   const accounts=Array.isArray(h.accounts)&&h.accounts.length?h.accounts.map(x=>({...x})):[{id:`acct-${Date.now()}-base`,name:"原帳號",shares:n(h.shares)}];
+  accounts.forEach(a=>a.name=normalizeAccountName(a.name));
   openHoldingAccountEditor(i,accounts);
 };
 function openHoldingAccountEditor(index,accounts){
@@ -502,8 +506,8 @@ function openHoldingAccountEditor(index,accounts){
   renderRows();
   modal.querySelector('.account-edit-add').onclick=()=>{sync();accounts.push({id:`acct-${Date.now()}-${Math.random().toString(36).slice(2,7)}`,name:"",shares:0});renderRows();rows.querySelector('.account-edit-row:last-child .account-edit-name')?.focus()};
   modal.querySelector('.account-edit-save').onclick=async()=>{
-    sync();const merged=new Map();accounts.forEach(a=>{const name=String(a.name||'').trim()||"原帳號",shares=Math.max(0,n(a.shares));if(shares>0)merged.set(name,(merged.get(name)||0)+shares)});
-    const clean=[...merged.entries()].map(([name,shares],j)=>({id:`acct-${Date.now()}-${j}`,name,shares}));const total=clean.reduce((sum,x)=>sum+x.shares,0);if(total<=0)return toast("至少要保留一個帳號且股數大於 0");
+    sync();const merged=new Map();accounts.forEach(a=>{const name=normalizeAccountName(a.name),key=name.toLocaleLowerCase(),shares=Math.max(0,n(a.shares));if(shares>0){const prev=merged.get(key);merged.set(key,{name:prev?.name||name,shares:(prev?.shares||0)+shares})}});
+    const clean=[...merged.values()].map((a,j)=>({id:`acct-${Date.now()}-${j}`,name:a.name,shares:a.shares}));const total=clean.reduce((sum,x)=>sum+x.shares,0);if(total<=0)return toast("至少要保留一個帳號且股數大於 0");
     const betaRaw=String($("accountEditBeta").value||"").trim();if(betaRaw!==""){const manual=Number(betaRaw);if(!Number.isFinite(manual)||manual<0||manual>10)return toast("Beta 請輸入 0～10 的數值");h.beta=manual;h.betaManual=true;h.betaSource="manual";h.betaSourceLabel="使用者手動輸入";h.betaBenchmark="";h.betaObservations=0;h.betaUpdatedAt=now();h.error="";}else{h.betaManual=false;try{Object.assign(h,await fetchBeta(h.symbol,h.market));h.error=""}catch(e){h.beta=null;h.error=`Beta：${e.message}`}}
     h.accounts=clean;h.shares=total;save();render();modal.remove();toast(`${h.symbol} 各帳號持股已更新`);
   };
@@ -629,14 +633,15 @@ function resetHoldingAccountForm(){if($("enableHoldingAccount"))$("enableHolding
 function addSharesToAccount(holding,shares,name){
   if(!Array.isArray(holding.accounts))holding.accounts=[];
   if(!holding.accounts.length&&n(holding.shares)>0){holding.accounts.push({id:`acct-${Date.now()}-base`,name:"原帳號",shares:n(holding.shares)})}
-  const key=String(name||"原帳號").trim()||"原帳號";
-  const existing=holding.accounts.find(x=>String(x.name||"").trim().toLocaleLowerCase()===key.toLocaleLowerCase());
+  const key=normalizeAccountName(name);
+  const existing=holding.accounts.find(x=>normalizeAccountName(x.name).toLocaleLowerCase()===key.toLocaleLowerCase());
   if(existing)existing.shares=n(existing.shares)+shares;else holding.accounts.push({id:`acct-${Date.now()}-${Math.random().toString(36).slice(2,7)}`,name:key,shares});
   holding.shares=holding.accounts.reduce((sum,x)=>sum+n(x.shares),0);
 }
 
 $("enableHoldingAccount")?.addEventListener("change",e=>{
-  const fields=$("holdingAccountFields");if(fields)fields.hidden=!e.target.checked;
+  const fields=$("holdingAccountFields");
+  if(fields)fields.hidden=!e.target.checked;
   if(e.target.checked){refreshHoldingAccountOptions();setTimeout(()=>$("holdingAccountName")?.focus(),0)}
   else if($("holdingAccountName"))$("holdingAccountName").value="";
 });
@@ -972,7 +977,7 @@ $("menuOverlay").onclick=closeMenu;
 document.querySelectorAll(".side-menu-nav button").forEach(b=>b.onclick=()=>switchPage(b.dataset.tab));
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeMenu()});
 
-switchPage("dashboard");if("serviceWorker"in navigator)navigator.serviceWorker.register("./sw.js?v=12.4.4").catch(()=>{});
+switchPage("dashboard");if("serviceWorker"in navigator)navigator.serviceWorker.register("./sw.js?v=12.4.5").catch(()=>{});
 
 
 function getCurrentHoldingValues(){
