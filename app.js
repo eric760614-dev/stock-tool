@@ -1476,7 +1476,7 @@ function trendChart(points,market,previousClose){
   const lastX=(regular.at(-1).offset/total*300).toFixed(1),line=coords.join(' ');
   const up=baseline?values.at(-1)>=baseline:values.at(-1)>=values[0],color=up?'#34d399':'#fb7185';
   const baseLine=baseline?`<line x1="0" y1="${y(baseline).toFixed(1)}" x2="300" y2="${y(baseline).toFixed(1)}" stroke="currentColor" opacity=".19" stroke-dasharray="3 5"/>`:'';
-  return `<svg class="trend-svg" viewBox="0 0 300 100" role="img" aria-label="當日正常交易時段走勢，尚未交易的時間保留空白">${baseLine}<polygon points="${coords[0].split(',')[0]},100 ${line} ${lastX},100" fill="${color}" opacity=".10"/><polyline points="${line}" fill="none" stroke="${color}" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
+  return `<svg class="trend-svg" viewBox="0 0 300 100" preserveAspectRatio="none" role="img" aria-label="當日正常交易時段走勢，尚未交易的時間保留空白">${baseLine}<polygon points="${coords[0].split(',')[0]},100 ${line} ${lastX},100" fill="${color}" opacity=".10"/><polyline points="${line}" fill="none" stroke="${color}" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
 }
 function uniqueMarketHoldings(market){return [...new Map((state.holdings||[]).filter(h=>h.market===market&&h.symbol&&h.symbol!=="AU9901").map(h=>[`${market}:${trendSymbol(h)}`,h])).values()];}
 function paintTrends(){
@@ -1587,7 +1587,7 @@ window.addEventListener('pageshow',e=>{if(e.persisted)resumeLiveMarketData();});
 // Initial refresh after application initialization.
 setTimeout(resumeLiveMarketData,700);
 
-// V12.5.6: Show API setup reminder only when keys are missing.
+// V12.5.7: Show API setup reminder only when keys are missing.
 (function initApiReminder(){
   const missing=[];if(!state.fugleKey)missing.push('Fugle（台股）');if(!state.finnhubKey)missing.push('Finnhub（美股）');
   if(!missing.length||sessionStorage.getItem('alphapilot-api-reminded-12.5.5'))return;
