@@ -928,8 +928,8 @@ window.deleteFixedExpense=deleteFixedExpense;
 
 const PAGE_META={
   dashboard:{label:"首頁",icon:"nav-dashboard.png"},
-  trends:{label:"即時走勢",icon:"nav-portfolio.png"},
-  portfolio:{label:"持股",icon:"nav-portfolio.png"},
+  trends:{label:"即時走勢",icon:"nav-trends.svg"},
+  portfolio:{label:"持股",icon:"nav-holdings.svg"},
   allocation:{label:"資產配置",icon:"nav-allocation.png"},
   rebalance:{label:"聰明再平衡",icon:"nav-rebalance.png"},
   risk:{label:"風險模擬",icon:"nav-risk.png"},
@@ -977,7 +977,7 @@ $("menuOverlay").onclick=closeMenu;
 document.querySelectorAll(".side-menu-nav button").forEach(b=>b.onclick=()=>switchPage(b.dataset.tab));
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeMenu()});
 
-switchPage("dashboard");if("serviceWorker"in navigator)navigator.serviceWorker.register("./sw.js?v=12.5.0").catch(()=>{});
+switchPage("dashboard");if("serviceWorker"in navigator)navigator.serviceWorker.register("./sw.js?v=12.5.1").catch(()=>{});
 
 
 function getCurrentHoldingValues(){
@@ -1453,7 +1453,7 @@ document.addEventListener("DOMContentLoaded",()=>{installRefreshMotion();install
   updateButton?.addEventListener('click', () => waitingWorker?.postMessage({ type: 'SKIP_WAITING' }));
 })();
 
-// V12.5.0 — isolated intraday charts; portfolio and Beta calculations unchanged.
+// V12.5.1 — isolated intraday charts; portfolio and Beta calculations unchanged.
 let trendBusy=false,trendLastFetch=0;
 const trendEscape=v=>String(v??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
 const trendPrice=v=>Number(v).toLocaleString("zh-TW",{maximumFractionDigits:3});
