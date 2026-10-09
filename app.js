@@ -1459,13 +1459,24 @@ const trendSessionCache=new Map();
 const trendEscape=v=>String(v??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
 const trendPrice=v=>Number(v).toLocaleString("zh-TW",{maximumFractionDigits:3});
 function trendSymbol(h){const symbol=String(h.symbol||"").trim().toUpperCase();return h.market==="TW"?symbol.replace(/\.(TW|TWO)$/i,""):symbol;}
-function trendChart(points){
-  const values=points.map(p=>Number(p.close)).filter(Number.isFinite);
-  if(values.length<2)return '<div class="trend-empty">暫無可用分鐘走勢</div>';
-  const min=Math.min(...values),max=Math.max(...values),span=Math.max(max-min,max*.002,0.001);
-  const coords=values.map((v,i)=>`${(i/(values.length-1)*300).toFixed(1)},${(85-(v-min)/span*68).toFixed(1)}`);
-  const line=coords.join(' '),up=values.at(-1)>=values[0],color=up?'#34d399':'#fb7185';
-  return `<svg class="trend-svg" viewBox="0 0 300 100" role="img" aria-label="價格分鐘走勢"><line x1="0" y1="51" x2="300" y2="51" stroke="currentColor" opacity=".12" stroke-dasharray="3 5"/><polygon points="0,100 ${line} 300,100" fill="${color}" opacity=".10"/><polyline points="${line}" fill="none" stroke="${color}" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
+function trendChart(points,market,previousClose){
+  const valid=(points||[]).map(p=>({time:Date.parse(p.time),close:Number(p.close)})).filter(p=>Number.isFinite(p.time)&&Number.isFinite(p.close)&&p.close>0);
+  if(!valid.length)return '<div class="trend-empty">暫無可用分鐘走勢</div>';
+  // Fixed regular-session axis: TW 09:00–13:30, US 09:30–16:00 in New York.
+  // Points beyond the current minute are intentionally left blank.
+  const zone=market==='TW'?'Asia/Taipei':'America/New_York';
+  const start=market==='TW'?540:570,total=market==='TW'?270:390;
+  const minutes=t=>{const parts=new Intl.DateTimeFormat('en-US',{timeZone:zone,hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date(t));return Number(parts.find(x=>x.type==='hour')?.value)*60+Number(parts.find(x=>x.type==='minute')?.value);};
+  const regular=valid.map(p=>({...p,offset:minutes(p.time)-start})).filter(p=>p.offset>=0&&p.offset<=total);
+  if(!regular.length)return '<div class="trend-empty">暫無正常交易時段分鐘線</div>';
+  const values=regular.map(p=>p.close),baseline=Number(previousClose)>0?Number(previousClose):null;
+  const min=Math.min(...values,...(baseline?[baseline]:[])),max=Math.max(...values,...(baseline?[baseline]:[])),span=Math.max(max-min,max*.002,.001);
+  const y=v=>85-(v-min)/span*68;
+  const coords=regular.map(p=>`${(p.offset/total*300).toFixed(1)},${y(p.close).toFixed(1)}`);
+  const lastX=(regular.at(-1).offset/total*300).toFixed(1),line=coords.join(' ');
+  const up=baseline?values.at(-1)>=baseline:values.at(-1)>=values[0],color=up?'#34d399':'#fb7185';
+  const baseLine=baseline?`<line x1="0" y1="${y(baseline).toFixed(1)}" x2="300" y2="${y(baseline).toFixed(1)}" stroke="currentColor" opacity=".19" stroke-dasharray="3 5"/>`:'';
+  return `<svg class="trend-svg" viewBox="0 0 300 100" role="img" aria-label="當日正常交易時段走勢，尚未交易的時間保留空白">${baseLine}<polygon points="${coords[0].split(',')[0]},100 ${line} ${lastX},100" fill="${color}" opacity=".10"/><polyline points="${line}" fill="none" stroke="${color}" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
 }
 function uniqueMarketHoldings(market){return [...new Map((state.holdings||[]).filter(h=>h.market===market&&h.symbol&&h.symbol!=="AU9901").map(h=>[`${market}:${trendSymbol(h)}`,h])).values()];}
 function paintTrends(){
@@ -1476,8 +1487,8 @@ function paintTrends(){
  grid.innerHTML=holdings.map(h=>{
   const symbol=trendSymbol(h),entry=trendSessionCache.get(`${h.market}:${symbol}`),data=entry?.data;
   if(!data)return `<article class="card trend-card"><strong>${trendEscape(h.name||symbol)}</strong><small>${trendEscape(symbol)}</small><div class="trend-empty">正在取得當日分鐘走勢…</div></article>`;
-  const pts=data.points||[],first=pts[0],last=pts.at(-1),pct=first&&last&&first.close?(last.close-first.close)/first.close*100:null;
-  return `<article class="card trend-card"><div class="trend-header-row"><div class="trend-heading"><strong>${trendEscape(h.name||symbol)}</strong><small>${trendEscape(symbol)} · ${h.market==='TW'?'台股':'美股'}</small></div><div class="trend-quote">${last?trendPrice(last.close):'--'} <span class="${pct===null?'':pct>=0?'positive':'negative'}">${pct===null?'':`${pct>=0?'+':''}${pct.toFixed(2)}%`}</span></div></div>${trendChart(pts)}<div class="trend-footer">${trendEscape(data.source||'')} · ${trendEscape(data.sessionDate||'最近交易日')}<span>${trendEscape(data.updatedAt||'')}</span></div>${data.delayed?'<div class="trend-delay">行情可能延遲，非交易所保證即時</div>':''}</article>`;
+  const pts=data.points||[],last=pts.at(-1),quotePrice=Number(h.price)>0?Number(h.price):Number(last?.close),previousClose=Number(h.previousClose)>0?Number(h.previousClose):Number(data.previousClose),pct=previousClose>0&&quotePrice>0?(quotePrice-previousClose)/previousClose*100:null;
+  return `<article class="card trend-card"><div class="trend-header-row"><div class="trend-heading"><strong>${trendEscape(h.name||symbol)}</strong><small>${trendEscape(symbol)} · ${h.market==='TW'?'台股':'美股'}</small></div><div class="trend-quote">${quotePrice>0?trendPrice(quotePrice):'--'} <span class="${pct===null?'':pct>=0?'positive':'negative'}">${pct===null?'':`${pct>=0?'+':''}${pct.toFixed(2)}%`}</span></div></div>${trendChart(pts,h.market,previousClose)}<div class="trend-footer">${trendEscape(data.source||'')} · ${trendEscape(data.sessionDate||'最近交易日')}<span>${trendEscape(data.updatedAt||'')}</span></div>${data.delayed?'<div class="trend-delay">行情可能延遲，非交易所保證即時</div>':''}</article>`;
  }).join('');
  if(status)status.textContent=`走勢更新：${trendLastFetch?new Date(trendLastFetch).toLocaleTimeString('zh-TW',{hour12:false}):'讀取中'}（僅顯示最新交易日）`;
 }
@@ -1576,7 +1587,7 @@ window.addEventListener('pageshow',e=>{if(e.persisted)resumeLiveMarketData();});
 // Initial refresh after application initialization.
 setTimeout(resumeLiveMarketData,700);
 
-// V12.5.5: Show API setup reminder only when keys are missing.
+// V12.5.6: Show API setup reminder only when keys are missing.
 (function initApiReminder(){
   const missing=[];if(!state.fugleKey)missing.push('Fugle（台股）');if(!state.finnhubKey)missing.push('Finnhub（美股）');
   if(!missing.length||sessionStorage.getItem('alphapilot-api-reminded-12.5.5'))return;
