@@ -746,7 +746,7 @@ $("addHolding").onclick=async()=>{
 $("refreshAll").onclick=async()=>{
   try{const r=await fetch("/api/fx",{cache:"no-store"}),d=await r.json();if(d.ok){state.fxRate=n(d.rate)||state.fxRate;if(d.rates)state.fxRates={...state.fxRates,...d.rates,TWD:1,USD:n(d.rate)||state.fxRate};}}catch{}
   for(let i=0;i<state.holdings.length;i++)await refreshHolding(i);
-  save();render();if(document.querySelector("[data-tab=trends].active") || document.querySelector("#trends:not([hidden])"))await loadTrends(true);toast("更新完成");
+  save();render();if(document.body.dataset.activeTab==="trends")await loadTrends(true);toast("更新完成");
 };
 $("clearHoldings").onclick=()=>{if(confirm("確定刪除全部持股？")){state.holdings=[];save();render()}};
 $("addCash").onclick=addCashPosition;
@@ -967,7 +967,7 @@ function switchPage(tab){
   closeMenu();
   window.scrollTo({top:0,behavior:"smooth"});
   render();
-  if(selected==="trends")loadTrends();
+  if(selected==="trends"){paintTrends();loadTrends();}
   if(selected==="allocation")requestAnimationFrame(()=>{renderMarketPie();renderPie()});
 }
 
@@ -1453,8 +1453,9 @@ document.addEventListener("DOMContentLoaded",()=>{installRefreshMotion();install
   updateButton?.addEventListener('click', () => waitingWorker?.postMessage({ type: 'SKIP_WAITING' }));
 })();
 
-// V12.5.2 — isolated intraday charts; portfolio and Beta calculations unchanged.
+// V12.5.3 — isolated intraday charts; portfolio and Beta calculations unchanged.
 let trendBusy=false,trendLastFetch=0;
+const trendSessionCache=new Map();
 const trendEscape=v=>String(v??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
 const trendPrice=v=>Number(v).toLocaleString("zh-TW",{maximumFractionDigits:3});
 function trendSymbol(h){const symbol=String(h.symbol||"").trim().toUpperCase();return h.market==="TW"?symbol.replace(/\.(TW|TWO)$/i,""):symbol;}
@@ -1466,27 +1467,111 @@ function trendChart(points){
   const line=coords.join(' '),up=values.at(-1)>=values[0],color=up?'#34d399':'#fb7185';
   return `<svg class="trend-svg" viewBox="0 0 300 100" role="img" aria-label="價格分鐘走勢"><line x1="0" y1="51" x2="300" y2="51" stroke="currentColor" opacity=".12" stroke-dasharray="3 5"/><polygon points="0,100 ${line} 300,100" fill="${color}" opacity=".10"/><polyline points="${line}" fill="none" stroke="${color}" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
 }
-async function loadTrends(force=false){
- if(document.body.dataset.activeTab!=="trends"||trendBusy)return;
- if(!force&&Date.now()-trendLastFetch<45000)return;
+function uniqueMarketHoldings(market){return [...new Map((state.holdings||[]).filter(h=>h.market===market&&h.symbol&&h.symbol!=="AU9901").map(h=>[`${market}:${trendSymbol(h)}`,h])).values()];}
+function paintTrends(){
+ if(document.body.dataset.activeTab!=="trends")return;
  const grid=$("trendGrid"),status=$("trendStatus");if(!grid)return;
- const holdings=[...new Map((state.holdings||[]).filter(h=>h.symbol).map(h=>[`${h.market}:${trendSymbol(h)}`,h])).values()];
- if(!holdings.length){grid.innerHTML='<article class="card">尚未加入持股。新增持股後會自動顯示在這裡。</article>';status.textContent='';return;}
- trendBusy=true;status.textContent='正在取得分鐘走勢…';
- grid.innerHTML=holdings.map(h=>`<article class="card trend-card" id="trend-${trendEscape(h.market)}-${trendEscape(trendSymbol(h))}"><strong>${trendEscape(h.name||h.symbol)}</strong><small>${trendEscape(trendSymbol(h))} · ${h.market==='TW'?'台股':'美股'}</small><div class="trend-empty">載入中…</div></article>`).join('');
- await Promise.all(holdings.map(async h=>{
-   const symbol=trendSymbol(h),el=document.getElementById(`trend-${h.market}-${symbol}`);if(!el)return;
-   try{
-    const headers={};if(h.market==='TW'&&state.fugleKey)headers['X-Fugle-Key']=state.fugleKey;
-    const res=await fetch(`/api/intraday?market=${encodeURIComponent(h.market)}&symbol=${encodeURIComponent(symbol)}`,{headers,cache:'no-store'});
-    const data=await res.json();if(!res.ok||!data.ok)throw Error(data.error||`HTTP ${res.status}`);
-    const pts=data.points||[],last=pts.at(-1),first=pts[0];
-    const pct=first&&last&&first.close?((last.close-first.close)/first.close*100):null;
-    el.innerHTML=`<div class="trend-top"><strong>${trendEscape(h.name||h.symbol)}</strong><small>${trendEscape(symbol)} · ${h.market==='TW'?'台股':'美股'}</small></div><div class="trend-price">${last?trendPrice(last.close):'--'} <span class="${pct===null?'':pct>=0?'positive':'negative'}">${pct===null?'':`${pct>=0?'+':''}${pct.toFixed(2)}%`}</span></div>${trendChart(pts)}<div class="trend-footer">${trendEscape(data.source||'')} · ${trendEscape(data.sessionDate||'最近交易日')}<span>${trendEscape(data.updatedAt||'')}</span></div>${data.delayed?'<div class="trend-delay">行情可能延遲，非交易所保證即時</div>':''}`;
-   }catch(e){el.innerHTML=`<strong>${trendEscape(h.name||h.symbol)}</strong><small>${trendEscape(symbol)}</small><div class="trend-empty">${trendEscape(e.message)}<br>請確認行情 API 或設定 Fugle Key</div>`;}
- }));
- trendBusy=false;trendLastFetch=Date.now();status.textContent=`更新時間：${new Date().toLocaleTimeString('zh-TW',{hour12:false})}（各市場資料時間以卡片為準）`;
+ const holdings=[...uniqueMarketHoldings("TW"),...uniqueMarketHoldings("US")];
+ if(!holdings.length){grid.innerHTML='<article class="card">尚未加入持股。新增持股後會自動顯示在這裡。</article>';return;}
+ grid.innerHTML=holdings.map(h=>{
+  const symbol=trendSymbol(h),entry=trendSessionCache.get(`${h.market}:${symbol}`),data=entry?.data;
+  if(!data)return `<article class="card trend-card"><strong>${trendEscape(h.name||symbol)}</strong><small>${trendEscape(symbol)}</small><div class="trend-empty">正在取得當日分鐘走勢…</div></article>`;
+  const pts=data.points||[],first=pts[0],last=pts.at(-1),pct=first&&last&&first.close?(last.close-first.close)/first.close*100:null;
+  return `<article class="card trend-card"><div class="trend-top"><strong>${trendEscape(h.name||symbol)}</strong><small>${trendEscape(symbol)} · ${h.market==='TW'?'台股':'美股'}</small></div><div class="trend-price">${last?trendPrice(last.close):'--'} <span class="${pct===null?'':pct>=0?'positive':'negative'}">${pct===null?'':`${pct>=0?'+':''}${pct.toFixed(2)}%`}</span></div>${trendChart(pts)}<div class="trend-footer">${trendEscape(data.source||'')} · ${trendEscape(data.sessionDate||'最近交易日')}<span>${trendEscape(data.updatedAt||'')}</span></div>${data.delayed?'<div class="trend-delay">行情可能延遲，非交易所保證即時</div>':''}</article>`;
+ }).join('');
+ if(status)status.textContent=`走勢更新：${trendLastFetch?new Date(trendLastFetch).toLocaleTimeString('zh-TW',{hour12:false}):'讀取中'}（僅顯示最新交易日）`;
 }
-
+async function loadTrends(force=false){
+ if(trendBusy||(!force&&Date.now()-trendLastFetch<55000))return;
+ const holdings=[...uniqueMarketHoldings("TW"),...uniqueMarketHoldings("US")];if(!holdings.length){paintTrends();return;}
+ trendBusy=true;paintTrends();
+ try{await Promise.all(holdings.map(async h=>{
+  const symbol=trendSymbol(h),key=`${h.market}:${symbol}`;
+  try{
+   const headers={};if(h.market==='TW'&&state.fugleKey)headers['X-Fugle-Key']=state.fugleKey;
+   const res=await fetch(`/api/intraday?market=${encodeURIComponent(h.market)}&symbol=${encodeURIComponent(symbol)}`,{headers,cache:'no-store'});
+   const data=await res.json();if(!res.ok||!data.ok)throw Error(data.error||`HTTP ${res.status}`);
+   trendSessionCache.set(key,{data,fetchedAt:Date.now()});
+   // Keep latest trading session only. Reopening the app refetches today's complete minute bars.
+   try{localStorage.setItem('alphapilot-trend-'+key,JSON.stringify({data,fetchedAt:Date.now()}));}catch{}
+  }catch(e){if(!trendSessionCache.has(key))console.warn('分鐘線暫時無法取得',key,e.message);}
+ }));trendLastFetch=Date.now();}
+ finally{trendBusy=false;paintTrends();}
+}
+// Restore most recent session immediately, then refetch the entire latest trading day.
+for(const h of [...uniqueMarketHoldings('TW'),...uniqueMarketHoldings('US')]){
+ const key=`${h.market}:${trendSymbol(h)}`;
+ try{const entry=JSON.parse(localStorage.getItem('alphapilot-trend-'+key)||'null');if(entry?.data?.points?.length)trendSessionCache.set(key,entry);}catch{}
+}
+const quotePollBusy={TW:false,US:false};
+async function pollMarketQuotes(market){
+ if(document.visibilityState!=='visible'||quotePollBusy[market])return;
+ const holdings=uniqueMarketHoldings(market);if(!holdings.length)return;
+ quotePollBusy[market]=true;let changed=false;
+ try{
+  await Promise.all(holdings.map(async h=>{
+   try{
+    const quote=market==='TW'?await fetchTw(trendSymbol(h)):await fetchUs(trendSymbol(h));
+    if(!(Number(quote.price)>0))return;
+    for(const item of state.holdings.filter(x=>x.market===market&&trendSymbol(x)===trendSymbol(h))){
+     item.price=Number(quote.price);if(Number(quote.previousClose)>0)item.previousClose=Number(quote.previousClose);
+     item.stalePrice=false;item.updatedAt=now();changed=true;
+    }
+   }catch(e){console.warn('行情更新失敗',market,h.symbol,e.message);}
+  }));
+  if(changed){save();render();}
+ }finally{quotePollBusy[market]=false;}
+}
+// iOS suspends JS after app closure/background; on resume refetch prices and latest session bars.
+function foregroundSync(){if(document.visibilityState!=='visible')return;pollMarketQuotes('TW');pollMarketQuotes('US');loadTrends(true);}
+setInterval(()=>pollMarketQuotes('TW'),5000);
+setInterval(()=>pollMarketQuotes('US'),30000);
 setInterval(()=>{if(document.visibilityState==='visible')loadTrends();},60000);
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')loadTrends(true)});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')foregroundSync()});
+window.addEventListener('focus',()=>{if(document.visibilityState==='visible')foregroundSync()});
+setTimeout(foregroundSync,1500);
+
+
+// V12.5.3 — lightweight quote polling while the PWA is visible.
+// iOS suspends timers when closed/backgrounded; resume immediately on return.
+const liveQuotePoll={TW:{busy:false,last:0,interval:5000},US:{busy:false,last:0,interval:30000}};
+async function updateLiveQuotes(market,force=false){
+  const job=liveQuotePoll[market];
+  if(!job||job.busy||(!force&&document.visibilityState!=='visible'))return;
+  if(!force&&Date.now()-job.last<job.interval)return;
+  const holdings=(state.holdings||[]).filter(h=>h.market===market&&h.symbol);
+  if(!holdings.length){job.last=Date.now();return;}
+  job.busy=true;job.last=Date.now();
+  let changed=false;
+  try{
+    // Each symbol is fetched once and shared by all matching positions.
+    const symbols=[...new Set(holdings.map(h=>String(h.symbol).trim().toUpperCase()))];
+    const results=await Promise.all(symbols.map(async symbol=>{
+      try{const quote=market==='TW'?await fetchTw(symbol):await fetchUs(symbol);
+        return [symbol,quote];}catch{return [symbol,null];}
+    }));
+    for(const [symbol,quote] of results){
+      if(!quote||!(Number(quote.price)>0))continue;
+      for(const h of holdings){if(String(h.symbol).trim().toUpperCase()!==symbol)continue;
+        h.price=Number(quote.price);
+        if(Number(quote.previousClose)>0)h.previousClose=Number(quote.previousClose);
+        h.stalePrice=false;h.updatedAt=now();changed=true;
+      }
+    }
+    if(changed){save();render();}
+  }finally{job.busy=false;}
+}
+function resumeLiveMarketData(){
+  if(document.visibilityState!=='visible')return;
+  updateLiveQuotes('TW',true);
+  updateLiveQuotes('US',true);
+  loadTrends(true);
+}
+setInterval(()=>updateLiveQuotes('TW'),1000);
+setInterval(()=>updateLiveQuotes('US'),1000);
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible')resumeLiveMarketData();
+});
+window.addEventListener('pageshow',e=>{if(e.persisted)resumeLiveMarketData();});
+// Initial refresh after application initialization.
+setTimeout(resumeLiveMarketData,700);
