@@ -16,8 +16,8 @@
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
   <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
-  <link rel="stylesheet" href="style.css?v=12.5.1">
-  <title>AlphaPilot V12.5.1</title>
+  <link rel="stylesheet" href="style.css?v=12.5.2">
+  <title>AlphaPilot V12.5.2</title>
 </head>
 <body>
   <div id="pwaSplash" class="pwa-splash" aria-hidden="true">
@@ -39,7 +39,7 @@
       <div>
         <div class="brand-lockup">
           <img src="alphapilot-brand.png" class="brand-icon brand-art" alt="AlphaPilot">
-          <div><p class="eyebrow">ERIC'S PORTFOLIO</p><h1>AlphaPilot <em>V12.5.1</em></h1></div>
+          <div><p class="eyebrow">ERIC'S PORTFOLIO</p><h1>AlphaPilot <em>V12.5.2</em></h1></div>
         </div>
       </div>
       <div class="hero-actions">
@@ -80,9 +80,9 @@
         <button data-tab="dashboard" class="active">
           <span class="menu-icon"><img src="nav-dashboard.png" alt=""></span><span>首頁</span>
         </button>
-        <button data-tab="trends"><span class="menu-icon"><img src="nav-trends.svg" alt=""></span><span>即時走勢</span></button>
+        <button data-tab="trends"><span class="menu-icon"><img src="nav-trends.png" alt=""></span><span>即時走勢</span></button>
         <button data-tab="portfolio">
-          <span class="menu-icon"><img src="nav-holdings.svg" alt=""></span><span>持股</span>
+          <span class="menu-icon"><img src="nav-holdings.png" alt=""></span><span>持股</span>
         </button>
         <button data-tab="allocation">
           <span class="menu-icon"><img src="nav-allocation.png" alt=""></span><span>資產配置</span>
@@ -112,7 +112,7 @@
   <strong id="currentPageLabel">首頁</strong>
 </div>
 <section id="trends" class="tab-panel">
-  <article class="card trend-intro"><div class="section-head"><h2>即時走勢</h2><button id="refreshTrends" class="secondary compact" type="button">重新整理</button></div>
+  <article class="card trend-intro"><div class="section-head"><h2>即時走勢</h2></div>
   <p class="trend-note">自動同步你的台股、美股持股；每 60 秒更新一次。顯示最近交易日的 1 分鐘走勢，實際報價可能延遲。</p>
   <p id="trendStatus" class="status" role="status"></p></article>
   <div id="trendGrid" class="trend-grid"></div>
@@ -350,7 +350,7 @@
 
     <section id="settings" class="tab-panel">
       <article class="card">
-        <div class="section-head settings-version-only"><span>AlphaPilot V12.5.1</span></div>
+        <div class="section-head settings-version-only"><span>AlphaPilot V12.5.2</span></div>
         <div class="architecture-status">
           <div class="status-orb">☁️</div>
           <div>
@@ -381,6 +381,6 @@
 
     <div id="toast" class="toast"></div>
   </main>
-  <script src="app.js?v=12.5.1"></script>
+  <script src="app.js?v=12.5.2"></script>
 </body>
 </html>

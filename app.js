@@ -746,7 +746,7 @@ $("addHolding").onclick=async()=>{
 $("refreshAll").onclick=async()=>{
   try{const r=await fetch("/api/fx",{cache:"no-store"}),d=await r.json();if(d.ok){state.fxRate=n(d.rate)||state.fxRate;if(d.rates)state.fxRates={...state.fxRates,...d.rates,TWD:1,USD:n(d.rate)||state.fxRate};}}catch{}
   for(let i=0;i<state.holdings.length;i++)await refreshHolding(i);
-  save();render();toast("更新完成");
+  save();render();if(document.querySelector("[data-tab=trends].active") || document.querySelector("#trends:not([hidden])"))await loadTrends(true);toast("更新完成");
 };
 $("clearHoldings").onclick=()=>{if(confirm("確定刪除全部持股？")){state.holdings=[];save();render()}};
 $("addCash").onclick=addCashPosition;
@@ -928,8 +928,8 @@ window.deleteFixedExpense=deleteFixedExpense;
 
 const PAGE_META={
   dashboard:{label:"首頁",icon:"nav-dashboard.png"},
-  trends:{label:"即時走勢",icon:"nav-trends.svg"},
-  portfolio:{label:"持股",icon:"nav-holdings.svg"},
+  trends:{label:"即時走勢",icon:"nav-trends.png"},
+  portfolio:{label:"持股",icon:"nav-holdings.png"},
   allocation:{label:"資產配置",icon:"nav-allocation.png"},
   rebalance:{label:"聰明再平衡",icon:"nav-rebalance.png"},
   risk:{label:"風險模擬",icon:"nav-risk.png"},
@@ -977,7 +977,7 @@ $("menuOverlay").onclick=closeMenu;
 document.querySelectorAll(".side-menu-nav button").forEach(b=>b.onclick=()=>switchPage(b.dataset.tab));
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeMenu()});
 
-switchPage("dashboard");if("serviceWorker"in navigator)navigator.serviceWorker.register("./sw.js?v=12.5.1").catch(()=>{});
+switchPage("dashboard");if("serviceWorker"in navigator)navigator.serviceWorker.register("./sw.js?v=12.5.2").catch(()=>{});
 
 
 function getCurrentHoldingValues(){
@@ -1453,7 +1453,7 @@ document.addEventListener("DOMContentLoaded",()=>{installRefreshMotion();install
   updateButton?.addEventListener('click', () => waitingWorker?.postMessage({ type: 'SKIP_WAITING' }));
 })();
 
-// V12.5.1 — isolated intraday charts; portfolio and Beta calculations unchanged.
+// V12.5.2 — isolated intraday charts; portfolio and Beta calculations unchanged.
 let trendBusy=false,trendLastFetch=0;
 const trendEscape=v=>String(v??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
 const trendPrice=v=>Number(v).toLocaleString("zh-TW",{maximumFractionDigits:3});
@@ -1487,6 +1487,6 @@ async function loadTrends(force=false){
  }));
  trendBusy=false;trendLastFetch=Date.now();status.textContent=`更新時間：${new Date().toLocaleTimeString('zh-TW',{hour12:false})}（各市場資料時間以卡片為準）`;
 }
-$("refreshTrends")?.addEventListener("click",()=>loadTrends(true));
+
 setInterval(()=>{if(document.visibilityState==='visible')loadTrends();},60000);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')loadTrends(true)});
