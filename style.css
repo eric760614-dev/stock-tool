@@ -1835,3 +1835,7 @@ body.light-mode .allocation-group-card{background:linear-gradient(145deg,#eef4ff
 /* V12.4.6 account chips */
 .holding-accounts{display:flex!important;flex-direction:column!important;align-items:flex-start!important;gap:7px!important;margin-top:10px}
 .holding-accounts .account-chip{display:block!important;width:max-content;max-width:100%;padding:7px 11px;border-radius:999px;border:1px solid hsla(var(--account-hue),70%,65%,.34);background:hsla(var(--account-hue),55%,42%,.16);color:hsl(var(--account-hue),75%,82%)}
+
+/* V12.5.0 intraday holdings charts */
+.trend-intro .section-head{margin-bottom:4px}.trend-note{font-size:12px;color:var(--muted);line-height:1.65;margin:6px 0}
+.trend-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.trend-card{min-width:0;padding:12px;margin:0}.trend-top{display:flex;flex-direction:column;gap:3px}.trend-top strong,.trend-card>strong{font-size:14px;overflow-wrap:anywhere}.trend-top small,.trend-card>small{font-size:11px;color:var(--muted)}.trend-price{font-size:20px;font-weight:800;margin:12px 0 4px;white-space:nowrap}.trend-price span{font-size:11px}.trend-svg{width:100%;height:auto;max-height:none}.trend-empty{font-size:12px;color:var(--muted);min-height:100px;padding:24px 0;line-height:1.6}.trend-footer{font-size:10px;color:var(--muted);display:flex;justify-content:space-between;gap:3px;flex-wrap:wrap}.trend-delay{font-size:10px;color:#e5ad5c;margin-top:6px}@media(max-width:360px){.trend-price{font-size:17px}.trend-card{padding:10px}}

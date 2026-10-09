@@ -2,7 +2,7 @@
 const $=id=>document.getElementById(id);
 const KEY="stockDashboardV3";
 const THEME_KEY="alphaPilotTheme";
-const DEFAULT={holdings:[],pledges:[],cashPositions:[],cashTwd:0,cashUsd:0,fxRate:32.5,fxRates:{TWD:1,USD:32.5},finnhubKey:"",history:[],targetWeights:{},allocationGroups:[],targetCashWeight:0,targetBeta:1.20,fixedExpenses:[]};
+const DEFAULT={holdings:[],pledges:[],cashPositions:[],cashTwd:0,cashUsd:0,fxRate:32.5,fxRates:{TWD:1,USD:32.5},finnhubKey:"",fugleKey:"",history:[],targetWeights:{},allocationGroups:[],targetCashWeight:0,targetBeta:1.20,fixedExpenses:[]};
 let state=(()=>{try{return {...DEFAULT,...JSON.parse(localStorage.getItem(KEY)||"{}")}}catch{return {...DEFAULT}}})();
 state.holdings=(state.holdings||[]).map(h=>({...h,betaManual:Boolean(h.betaManual),stalePrice:Boolean(h.stalePrice),accounts:Array.isArray(h.accounts)?h.accounts.map((x,i)=>({id:String(x.id||`acct-${Date.now()}-${i}`),name:(String(x.name||`帳號 ${i+1}`).trim()==="原持股"?"原帳號":String(x.name||`帳號 ${i+1}`).trim()),shares:Math.max(0,Number(x.shares)||0)})).filter(x=>x.shares>0):[]}));
 state.allocationGroups=Array.isArray(state.allocationGroups)?state.allocationGroups:[];
@@ -187,7 +187,7 @@ function render(){
   $("lastUpdated").textContent=state.holdings.map(h=>h.updatedAt).filter(Boolean).sort().at(-1)||"尚未更新";
   renderHoldings();renderMarketPie();renderPie();renderHistory();renderAllocationGroups();renderTargetWeightList();
   renderCashPositions();renderFixedExpenses();
-  $("finnhubKey").value=state.finnhubKey;$("fxRate").value=state.fxRate;if($("targetBeta"))$("targetBeta").value=targetBeta();
+  $("finnhubKey").value=state.finnhubKey;$("fugleKey").value=state.fugleKey||"";$("fxRate").value=state.fxRate;if($("targetBeta"))$("targetBeta").value=targetBeta();
 }
 
 
@@ -751,7 +751,7 @@ $("refreshAll").onclick=async()=>{
 $("clearHoldings").onclick=()=>{if(confirm("確定刪除全部持股？")){state.holdings=[];save();render()}};
 $("addCash").onclick=addCashPosition;
 $("addPledge").onclick=addOrUpdatePledge;
-$("saveSettings").onclick=()=>{state.finnhubKey=$("finnhubKey").value.trim();state.fxRate=n($("fxRate").value)||state.fxRate;state.targetBeta=Math.max(0.1,Math.min(3,n($("targetBeta")?.value)||1.20));save();render();toast("設定已儲存")};
+$("saveSettings").onclick=()=>{state.finnhubKey=$("finnhubKey").value.trim();state.fugleKey=$("fugleKey").value.trim();state.fxRate=n($("fxRate").value)||state.fxRate;state.targetBeta=Math.max(0.1,Math.min(3,n($("targetBeta")?.value)||1.20));save();render();toast("設定已儲存")};
 $("testWorker").onclick=async()=>{try{const r=await fetch("/api/status",{cache:"no-store"}),d=await r.json();$("settingsStatus").textContent=d.ok?`系統連線正常｜V${d.version}`:`失敗：${d.error}`}catch(e){$("settingsStatus").textContent=`連線失敗：${e.message}`}};
 $("historyMonthFilter")?.addEventListener("change",e=>{window.__historyMonthFilter=e.target.value||"all";renderHistory();});
 $("saveSnapshot").onclick=()=>{const date=new Date().toISOString().slice(0,10),total=totals().total,old=state.history.find(x=>x.date===date);old?old.total=total:state.history.push({date,total});save();render();toast("今天資產已記錄")};
@@ -928,6 +928,7 @@ window.deleteFixedExpense=deleteFixedExpense;
 
 const PAGE_META={
   dashboard:{label:"首頁",icon:"nav-dashboard.png"},
+  trends:{label:"即時走勢",icon:"nav-portfolio.png"},
   portfolio:{label:"持股",icon:"nav-portfolio.png"},
   allocation:{label:"資產配置",icon:"nav-allocation.png"},
   rebalance:{label:"聰明再平衡",icon:"nav-rebalance.png"},
@@ -966,6 +967,7 @@ function switchPage(tab){
   closeMenu();
   window.scrollTo({top:0,behavior:"smooth"});
   render();
+  if(selected==="trends")loadTrends();
   if(selected==="allocation")requestAnimationFrame(()=>{renderMarketPie();renderPie()});
 }
 
@@ -975,7 +977,7 @@ $("menuOverlay").onclick=closeMenu;
 document.querySelectorAll(".side-menu-nav button").forEach(b=>b.onclick=()=>switchPage(b.dataset.tab));
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeMenu()});
 
-switchPage("dashboard");if("serviceWorker"in navigator)navigator.serviceWorker.register("./sw.js?v=12.4.6").catch(()=>{});
+switchPage("dashboard");if("serviceWorker"in navigator)navigator.serviceWorker.register("./sw.js?v=12.5.0").catch(()=>{});
 
 
 function getCurrentHoldingValues(){
@@ -1450,3 +1452,41 @@ document.addEventListener("DOMContentLoaded",()=>{installRefreshMotion();install
   }
   updateButton?.addEventListener('click', () => waitingWorker?.postMessage({ type: 'SKIP_WAITING' }));
 })();
+
+// V12.5.0 — isolated intraday charts; portfolio and Beta calculations unchanged.
+let trendBusy=false,trendLastFetch=0;
+const trendEscape=v=>String(v??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+const trendPrice=v=>Number(v).toLocaleString("zh-TW",{maximumFractionDigits:3});
+function trendSymbol(h){const symbol=String(h.symbol||"").trim().toUpperCase();return h.market==="TW"?symbol.replace(/\.(TW|TWO)$/i,""):symbol;}
+function trendChart(points){
+  const values=points.map(p=>Number(p.close)).filter(Number.isFinite);
+  if(values.length<2)return '<div class="trend-empty">暫無可用分鐘走勢</div>';
+  const min=Math.min(...values),max=Math.max(...values),span=Math.max(max-min,max*.002,0.001);
+  const coords=values.map((v,i)=>`${(i/(values.length-1)*300).toFixed(1)},${(85-(v-min)/span*68).toFixed(1)}`);
+  const line=coords.join(' '),up=values.at(-1)>=values[0],color=up?'#34d399':'#fb7185';
+  return `<svg class="trend-svg" viewBox="0 0 300 100" role="img" aria-label="價格分鐘走勢"><line x1="0" y1="51" x2="300" y2="51" stroke="currentColor" opacity=".12" stroke-dasharray="3 5"/><polygon points="0,100 ${line} 300,100" fill="${color}" opacity=".10"/><polyline points="${line}" fill="none" stroke="${color}" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
+}
+async function loadTrends(force=false){
+ if(document.body.dataset.activeTab!=="trends"||trendBusy)return;
+ if(!force&&Date.now()-trendLastFetch<45000)return;
+ const grid=$("trendGrid"),status=$("trendStatus");if(!grid)return;
+ const holdings=[...new Map((state.holdings||[]).filter(h=>h.symbol).map(h=>[`${h.market}:${trendSymbol(h)}`,h])).values()];
+ if(!holdings.length){grid.innerHTML='<article class="card">尚未加入持股。新增持股後會自動顯示在這裡。</article>';status.textContent='';return;}
+ trendBusy=true;status.textContent='正在取得分鐘走勢…';
+ grid.innerHTML=holdings.map(h=>`<article class="card trend-card" id="trend-${trendEscape(h.market)}-${trendEscape(trendSymbol(h))}"><strong>${trendEscape(h.name||h.symbol)}</strong><small>${trendEscape(trendSymbol(h))} · ${h.market==='TW'?'台股':'美股'}</small><div class="trend-empty">載入中…</div></article>`).join('');
+ await Promise.all(holdings.map(async h=>{
+   const symbol=trendSymbol(h),el=document.getElementById(`trend-${h.market}-${symbol}`);if(!el)return;
+   try{
+    const headers={};if(h.market==='TW'&&state.fugleKey)headers['X-Fugle-Key']=state.fugleKey;
+    const res=await fetch(`/api/intraday?market=${encodeURIComponent(h.market)}&symbol=${encodeURIComponent(symbol)}`,{headers,cache:'no-store'});
+    const data=await res.json();if(!res.ok||!data.ok)throw Error(data.error||`HTTP ${res.status}`);
+    const pts=data.points||[],last=pts.at(-1),first=pts[0];
+    const pct=first&&last&&first.close?((last.close-first.close)/first.close*100):null;
+    el.innerHTML=`<div class="trend-top"><strong>${trendEscape(h.name||h.symbol)}</strong><small>${trendEscape(symbol)} · ${h.market==='TW'?'台股':'美股'}</small></div><div class="trend-price">${last?trendPrice(last.close):'--'} <span class="${pct===null?'':pct>=0?'positive':'negative'}">${pct===null?'':`${pct>=0?'+':''}${pct.toFixed(2)}%`}</span></div>${trendChart(pts)}<div class="trend-footer">${trendEscape(data.source||'')} · ${trendEscape(data.sessionDate||'最近交易日')}<span>${trendEscape(data.updatedAt||'')}</span></div>${data.delayed?'<div class="trend-delay">行情可能延遲，非交易所保證即時</div>':''}`;
+   }catch(e){el.innerHTML=`<strong>${trendEscape(h.name||h.symbol)}</strong><small>${trendEscape(symbol)}</small><div class="trend-empty">${trendEscape(e.message)}<br>請確認行情 API 或設定 Fugle Key</div>`;}
+ }));
+ trendBusy=false;trendLastFetch=Date.now();status.textContent=`更新時間：${new Date().toLocaleTimeString('zh-TW',{hour12:false})}（各市場資料時間以卡片為準）`;
+}
+$("refreshTrends")?.addEventListener("click",()=>loadTrends(true));
+setInterval(()=>{if(document.visibilityState==='visible')loadTrends();},60000);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')loadTrends(true)});
