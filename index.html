@@ -16,8 +16,8 @@
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
   <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
-  <link rel="stylesheet" href="style.css?v=12.5.4">
-  <title>AlphaPilot V12.5.4</title>
+  <link rel="stylesheet" href="style.css?v=12.5.5">
+  <title>AlphaPilot V12.5.5</title>
 </head>
 <body>
   <div id="pwaSplash" class="pwa-splash" aria-hidden="true">
@@ -39,7 +39,7 @@
       <div>
         <div class="brand-lockup">
           <img src="alphapilot-brand.png" class="brand-icon brand-art" alt="AlphaPilot">
-          <div><p class="eyebrow">ERIC'S PORTFOLIO</p><h1>AlphaPilot <em>V12.5.4</em></h1></div>
+          <div><p class="eyebrow">ERIC'S PORTFOLIO</p><h1>AlphaPilot <em>V12.5.5</em></h1></div>
         </div>
       </div>
       <div class="hero-actions">
@@ -350,7 +350,7 @@
 
     <section id="settings" class="tab-panel">
       <article class="card">
-        <div class="section-head settings-version-only"><span>AlphaPilot V12.5.4</span></div>
+        <div class="section-head settings-version-only"><span>AlphaPilot V12.5.5</span></div>
         <div class="architecture-status">
           <div class="status-orb">☁️</div>
           <div>
@@ -358,8 +358,8 @@
             <p>台股、匯率與 Beta 會由目前網站自動處理，不需再填 Worker 網址。</p>
           </div>
         </div>
-        <label>Fugle API Key（台股分鐘走勢）<input id="fugleKey" type="password" autocomplete="off" placeholder="貼上富果 Market Data API Key"></label>
-        <label>Finnhub API Key（美股）<input id="finnhubKey" type="password" placeholder="免費 API Key"></label>
+        <label><a class="api-apply-link" href="https://developer.fugle.tw/" target="_blank" rel="noopener noreferrer">Fugle API Key（點擊前往申請 ↗）</a><input id="fugleKey" type="password" autocomplete="off" placeholder="貼上富果 Market Data API Key"></label>
+        <label><a class="api-apply-link" href="https://finnhub.io/register" target="_blank" rel="noopener noreferrer">Finnhub API Key（點擊前往申請 ↗）</a><input id="finnhubKey" type="password" placeholder="免費 API Key"></label>
         <label>USD/TWD 備用匯率<input id="fxRate" type="number" min="0" step="0.0001"></label>
         <label>目標 Portfolio Beta<input id="targetBeta" type="number" min="0.1" max="3" step="0.05" inputmode="decimal" value="1.20"></label>
         <button id="saveSettings" class="primary full">儲存設定</button>
@@ -381,6 +381,6 @@
 
     <div id="toast" class="toast"></div>
   </main>
-  <script src="app.js?v=12.5.4"></script>
+  <script src="app.js?v=12.5.5"></script>
 </body>
 </html>

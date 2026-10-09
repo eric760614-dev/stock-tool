@@ -1477,7 +1477,7 @@ function paintTrends(){
   const symbol=trendSymbol(h),entry=trendSessionCache.get(`${h.market}:${symbol}`),data=entry?.data;
   if(!data)return `<article class="card trend-card"><strong>${trendEscape(h.name||symbol)}</strong><small>${trendEscape(symbol)}</small><div class="trend-empty">正在取得當日分鐘走勢…</div></article>`;
   const pts=data.points||[],first=pts[0],last=pts.at(-1),pct=first&&last&&first.close?(last.close-first.close)/first.close*100:null;
-  return `<article class="card trend-card"><div class="trend-top"><strong>${trendEscape(h.name||symbol)}</strong><small>${trendEscape(symbol)} · ${h.market==='TW'?'台股':'美股'}</small></div><div class="trend-price">${last?trendPrice(last.close):'--'} <span class="${pct===null?'':pct>=0?'positive':'negative'}">${pct===null?'':`${pct>=0?'+':''}${pct.toFixed(2)}%`}</span></div>${trendChart(pts)}<div class="trend-footer">${trendEscape(data.source||'')} · ${trendEscape(data.sessionDate||'最近交易日')}<span>${trendEscape(data.updatedAt||'')}</span></div>${data.delayed?'<div class="trend-delay">行情可能延遲，非交易所保證即時</div>':''}</article>`;
+  return `<article class="card trend-card"><div class="trend-header-row"><div class="trend-heading"><strong>${trendEscape(h.name||symbol)}</strong><small>${trendEscape(symbol)} · ${h.market==='TW'?'台股':'美股'}</small></div><div class="trend-quote">${last?trendPrice(last.close):'--'} <span class="${pct===null?'':pct>=0?'positive':'negative'}">${pct===null?'':`${pct>=0?'+':''}${pct.toFixed(2)}%`}</span></div></div>${trendChart(pts)}<div class="trend-footer">${trendEscape(data.source||'')} · ${trendEscape(data.sessionDate||'最近交易日')}<span>${trendEscape(data.updatedAt||'')}</span></div>${data.delayed?'<div class="trend-delay">行情可能延遲，非交易所保證即時</div>':''}</article>`;
  }).join('');
  if(status)status.textContent=`走勢更新：${trendLastFetch?new Date(trendLastFetch).toLocaleTimeString('zh-TW',{hour12:false}):'讀取中'}（僅顯示最新交易日）`;
 }
@@ -1575,3 +1575,16 @@ document.addEventListener('visibilitychange',()=>{
 window.addEventListener('pageshow',e=>{if(e.persisted)resumeLiveMarketData();});
 // Initial refresh after application initialization.
 setTimeout(resumeLiveMarketData,700);
+
+// V12.5.5: Show API setup reminder only when keys are missing.
+(function initApiReminder(){
+  const missing=[];if(!state.fugleKey)missing.push('Fugle（台股）');if(!state.finnhubKey)missing.push('Finnhub（美股）');
+  if(!missing.length||sessionStorage.getItem('alphapilot-api-reminded-12.5.5'))return;
+  const show=()=>{
+    if(document.getElementById('apiReminderBackdrop'))return;
+    const backdrop=document.createElement('div');backdrop.id='apiReminderBackdrop';backdrop.className='api-reminder-backdrop';
+    backdrop.innerHTML=`<section class="api-reminder-modal" role="dialog" aria-modal="true" aria-labelledby="apiReminderTitle"><h3 id="apiReminderTitle">設定行情 API</h3><p>若要取得完整報價功能，請至「設定」頁面申請並填入 ${missing.join('、')} API Key。</p><button type="button" class="primary full" id="apiReminderOk">我知道了</button></section>`;
+    document.body.appendChild(backdrop);document.getElementById('apiReminderOk').onclick=()=>{sessionStorage.setItem('alphapilot-api-reminded-12.5.5','1');backdrop.remove()};
+  };
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',show,{once:true});else show();
+})();
