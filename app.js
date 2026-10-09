@@ -1453,7 +1453,7 @@ document.addEventListener("DOMContentLoaded",()=>{installRefreshMotion();install
   updateButton?.addEventListener('click', () => waitingWorker?.postMessage({ type: 'SKIP_WAITING' }));
 })();
 
-// V12.5.3 — isolated intraday charts; portfolio and Beta calculations unchanged.
+// V12.5.4 — isolated intraday charts; portfolio and Beta calculations unchanged.
 let trendBusy=false,trendLastFetch=0;
 const trendSessionCache=new Map();
 const trendEscape=v=>String(v??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
@@ -1532,7 +1532,7 @@ window.addEventListener('focus',()=>{if(document.visibilityState==='visible')for
 setTimeout(foregroundSync,1500);
 
 
-// V12.5.3 — lightweight quote polling while the PWA is visible.
+// V12.5.4 — lightweight quote polling while the PWA is visible.
 // iOS suspends timers when closed/backgrounded; resume immediately on return.
 const liveQuotePoll={TW:{busy:false,last:0,interval:5000},US:{busy:false,last:0,interval:30000}};
 async function updateLiveQuotes(market,force=false){
