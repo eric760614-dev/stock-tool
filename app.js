@@ -1587,7 +1587,7 @@ window.addEventListener('pageshow',e=>{if(e.persisted)resumeLiveMarketData();});
 // Initial refresh after application initialization.
 setTimeout(resumeLiveMarketData,700);
 
-// V12.5.7: Show API setup reminder only when keys are missing.
+// V12.5.8: Show API setup reminder only when keys are missing.
 (function initApiReminder(){
   const missing=[];if(!state.fugleKey)missing.push('Fugle（台股）');if(!state.finnhubKey)missing.push('Finnhub（美股）');
   if(!missing.length||sessionStorage.getItem('alphapilot-api-reminded-12.5.5'))return;
