@@ -1,8 +1,12 @@
 {
-  "name": "alphapilot-v12-pwa",
-  "version": "12.5.8",
+  "name": "budget-tool",
+  "version": "3.9.3",
   "private": true,
   "scripts": {
+    "dev": "wrangler dev",
     "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
   }
 }
