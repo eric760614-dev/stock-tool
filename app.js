@@ -1514,34 +1514,8 @@ for(const h of [...uniqueMarketHoldings('TW'),...uniqueMarketHoldings('US')]){
  const key=`${h.market}:${trendSymbol(h)}`;
  try{const entry=JSON.parse(localStorage.getItem('alphapilot-trend-'+key)||'null');if(entry?.data?.points?.length)trendSessionCache.set(key,entry);}catch{}
 }
-const quotePollBusy={TW:false,US:false};
-async function pollMarketQuotes(market){
- if(document.visibilityState!=='visible'||quotePollBusy[market])return;
- const holdings=uniqueMarketHoldings(market);if(!holdings.length)return;
- quotePollBusy[market]=true;let changed=false;
- try{
-  await Promise.all(holdings.map(async h=>{
-   try{
-    const quote=market==='TW'?await fetchTw(trendSymbol(h)):await fetchUs(trendSymbol(h));
-    if(!(Number(quote.price)>0))return;
-    for(const item of state.holdings.filter(x=>x.market===market&&trendSymbol(x)===trendSymbol(h))){
-     item.price=Number(quote.price);if(Number(quote.previousClose)>0)item.previousClose=Number(quote.previousClose);
-     item.stalePrice=false;item.updatedAt=now();changed=true;
-    }
-   }catch(e){console.warn('行情更新失敗',market,h.symbol,e.message);}
-  }));
-  if(changed){save();render();}
- }finally{quotePollBusy[market]=false;}
-}
-// iOS suspends JS after app closure/background; on resume refetch prices and latest session bars.
-function foregroundSync(){if(document.visibilityState!=='visible')return;pollMarketQuotes('TW');pollMarketQuotes('US');loadTrends(true);}
-setInterval(()=>pollMarketQuotes('TW'),5000);
-setInterval(()=>pollMarketQuotes('US'),30000);
+// Minute candles refresh every 60 seconds; live quotes use the single poller below.
 setInterval(()=>{if(document.visibilityState==='visible')loadTrends();},60000);
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')foregroundSync()});
-window.addEventListener('focus',()=>{if(document.visibilityState==='visible')foregroundSync()});
-setTimeout(foregroundSync,1500);
-
 
 // V12.5.4 — lightweight quote polling while the PWA is visible.
 // iOS suspends timers when closed/backgrounded; resume immediately on return.
@@ -1578,24 +1552,25 @@ function resumeLiveMarketData(){
   updateLiveQuotes('US',true);
   loadTrends(true);
 }
-setInterval(()=>updateLiveQuotes('TW'),1000);
-setInterval(()=>updateLiveQuotes('US'),1000);
+setInterval(()=>updateLiveQuotes('TW'),5000);
+setInterval(()=>updateLiveQuotes('US'),30000);
 document.addEventListener('visibilitychange',()=>{
   if(document.visibilityState==='visible')resumeLiveMarketData();
 });
 window.addEventListener('pageshow',e=>{if(e.persisted)resumeLiveMarketData();});
+window.addEventListener('focus',resumeLiveMarketData);
 // Initial refresh after application initialization.
 setTimeout(resumeLiveMarketData,700);
 
-// V12.5.8: Show API setup reminder only when keys are missing.
+// V12.5.9: Show API setup reminder only when keys are missing.
 (function initApiReminder(){
   const missing=[];if(!state.fugleKey)missing.push('Fugle（台股）');if(!state.finnhubKey)missing.push('Finnhub（美股）');
-  if(!missing.length||sessionStorage.getItem('alphapilot-api-reminded-12.5.5'))return;
+  if(!missing.length||sessionStorage.getItem('alphapilot-api-reminded-12.5.9'))return;
   const show=()=>{
     if(document.getElementById('apiReminderBackdrop'))return;
     const backdrop=document.createElement('div');backdrop.id='apiReminderBackdrop';backdrop.className='api-reminder-backdrop';
     backdrop.innerHTML=`<section class="api-reminder-modal" role="dialog" aria-modal="true" aria-labelledby="apiReminderTitle"><h3 id="apiReminderTitle">設定行情 API</h3><p>若要取得完整報價功能，請至「設定」頁面申請並填入 ${missing.join('、')} API Key。</p><button type="button" class="primary full" id="apiReminderOk">我知道了</button></section>`;
-    document.body.appendChild(backdrop);document.getElementById('apiReminderOk').onclick=()=>{sessionStorage.setItem('alphapilot-api-reminded-12.5.5','1');backdrop.remove()};
+    document.body.appendChild(backdrop);document.getElementById('apiReminderOk').onclick=()=>{sessionStorage.setItem('alphapilot-api-reminded-12.5.9','1');backdrop.remove()};
   };
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',show,{once:true});else show();
 })();
